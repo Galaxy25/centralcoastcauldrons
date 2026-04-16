@@ -66,9 +66,6 @@ def search_orders(
     )
 
 
-cart_id_counter = 1
-carts: dict[int, dict[str, int]] = {}
-
 
 class Customer(BaseModel):
     customer_id: str
@@ -83,8 +80,7 @@ def post_visits(visit_id: int, customers: List[Customer]):
     """
     Shares the customers that visited the store on that tick.
     """
-    return customers[visit_id]
-
+    return status.HTTP_204_NO_CONTENT
 
 class CartCreateResponse(BaseModel):
     cart_id: int
@@ -116,10 +112,8 @@ class CartItem(BaseModel):
 @router.post("/{cart_id}/items/{item_sku}", status_code=status.HTTP_204_NO_CONTENT)
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     print(
-        f"cart_id: {cart_id}, item_sku: {item_sku}, cart_item: {cart_item}, carts: {carts}"
+        f"cart_id: {cart_id}, item_sku: {item_sku}, cart_item: {cart_item}"
     )
-    if cart_id not in carts:
-        raise HTTPException(status_code=404, detail="Cart not found")
 
     with db.engine.begin() as connection:
         potion_id = connection.execute(
@@ -156,9 +150,6 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     """
     Handles the checkout process for a specific cart.
     """
-
-    if cart_id not in carts:
-        raise HTTPException(status_code=404, detail="Cart not found")
 
     with db.engine.begin() as connection:
         checkout = connection.execute(
