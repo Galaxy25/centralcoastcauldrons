@@ -59,7 +59,7 @@ def post_deliver_barrels(barrels_delivered: List[Barrel], order_id: int):
     a single delivery; the call is idempotent based on the order_id.
     """
     print(f"barrels delivered: {barrels_delivered} order_id: {order_id}")
-    ml_options = ("red_ml", "green_ml", "blue_ml")
+    ml_options = ("red_ml", "green_ml", "blue_ml", "dark_ml")
 
     delivery = calculate_barrel_summary(barrels_delivered)
     add_global_inventory("gold", -delivery.gold_paid)

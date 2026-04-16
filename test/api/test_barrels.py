@@ -10,6 +10,7 @@ from typing import List
 from src.api.admin import reset
 from src import database as db
 from src.api.barrels import *
+from src.api.carts import checkout
 
 
 def test_barrel_delivery() -> None:
@@ -126,3 +127,48 @@ def test_barrel_plan() -> None:
     assert table_row[0] == 100
     for i in range(1, len(table_row)):
         assert table_row[i] == 0
+
+def test_barrel_plan() -> None:
+    reset()
+    wholesale_catalog: List[Barrel] = [
+        Barrel(
+            sku="SMALL_DARK_BARREL",
+            ml_per_barrel=8000,
+            potion_type=[0, 0, 0, 1],
+            price=20,
+            quantity=100,
+        ),
+        Barrel(
+            sku="SMALL_GREEN_BARREL",
+            ml_per_barrel=1000,
+            potion_type=[0, 1.0, 0, 0],
+            price=50,
+            quantity=5,
+        ),
+        Barrel(
+            sku="SMALL_BLUE_BARREL",
+            ml_per_barrel=1000,
+            potion_type=[0, 0, 1.0, 0],
+            price=50,
+            quantity=2,
+        ),
+    ]
+
+    with db.engine.begin() as connection:
+        connection.execute(
+            sqlalchemy.text(
+                """
+                UPDATE global_inventory SET 
+                gold = 1000,
+                red_ml = 400,
+                blue_ml = 200,
+                green_ml = 100,
+                dark_ml = 300
+                """
+            )
+        )
+    
+    barrels = create_barrel_plan(1000, 50000, 400, 100, 200, 300, wholesale_catalog)
+    assert len(barrels) == 1
+    assert barrels[0].quantity == 50
+   
