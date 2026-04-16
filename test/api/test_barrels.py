@@ -13,6 +13,21 @@ from src.api.barrels import *
 
 
 def test_barrel_delivery() -> None:
+    reset()
+
+    with db.engine.begin() as connection:
+        connection.execute(
+            sqlalchemy.text(
+                """
+                UPDATE global_inventory SET 
+                gold = 1000,
+                red_ml = 400,
+                blue_ml = 200,
+                green_ml = 100,
+                dark_ml = 300
+                """
+            )
+        )
     delivery: List[Barrel] = [
         Barrel(
             sku="SMALL_RED_BARREL",
@@ -31,6 +46,7 @@ def test_barrel_delivery() -> None:
     ]
 
     delivery_summary = calculate_barrel_summary(delivery)
+    assert len(create_barrel_plan(1500, 100, 100, 100, 100, 100, delivery)) == 2
 
     assert delivery_summary.gold_paid == 1750
 
@@ -69,9 +85,7 @@ def test_barrel_plan() -> None:
                 red_ml = 400,
                 blue_ml = 200,
                 green_ml = 100,
-                red_potions = 2,
-                green_potions = 3,
-                blue_potions= 1
+                dark_ml = 300
                 """
             )
         )
@@ -81,7 +95,7 @@ def test_barrel_plan() -> None:
         row = connection.execute(
             sqlalchemy.text(
                 """
-                SELECT gold, red_ml, green_ml, blue_ml
+                SELECT gold, red_ml, green_ml, blue_ml, dark_ml
                 FROM global_inventory
                 """
             )
@@ -90,9 +104,10 @@ def test_barrel_plan() -> None:
     assert row[1] == 10400
     assert row[2] == 5100
     assert row[3] == 2200
+    assert row[4] == 300
 
     plan = get_wholesale_purchase_plan(wholesale_catalog)[0]
-    assert plan.quantity == 1
+    assert plan.quantity == 3
         
 
 
@@ -102,7 +117,7 @@ def test_barrel_plan() -> None:
         table_row = connection.execute(
             sqlalchemy.text(
                 """
-                SELECT gold, red_ml, green_ml, blue_ml, red_potions, green_potions, blue_potions
+                SELECT gold, red_ml, green_ml, blue_ml, dark_ml
                 FROM global_inventory  
                 """
             )

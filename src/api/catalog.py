@@ -4,6 +4,8 @@ from typing import List, Annotated
 from src import database as db
 import sqlalchemy
 
+from src.api.helper import get_global_inventory, get_potion_inventory
+
 router = APIRouter()
 
 
@@ -24,22 +26,21 @@ class CatalogItem(BaseModel):
 def create_catalog() -> List[CatalogItem]:
 
     with db.engine.begin() as connection:
-        row = connection.execute(
+        potions = connection.execute(
             sqlalchemy.text(
                 """
-                SELECT red_potions, green_potions, blue_potions
-                FROM global_inventory
+                SELECT *
+                FROM potion_inventory
+                WHERE quantity > 0
+                ORDER BY quantity DESC;
                 """
             )
-        ).one()
+        ).all()
     
     items = []
-    if row[0] != 0:
-        items.append(CatalogItem(sku='red_potions', name="red potion", quantity=row[0], price=75, potion_type=[100,0,0,0]))
-    if row[1] != 0:
-        items.append(CatalogItem(sku='green_potions', name="green potion", quantity=row[1], price=75, potion_type=[0,100,0,0]))
-    if row[2] != 0:
-        items.append(CatalogItem(sku='blue_potions', name="blue potion", quantity=row[2], price=75, potion_type=[0,0,100,0]))
+    for p in potions[:6]:
+        items.append(CatalogItem(sku=p.item_sku, name=p.name, quantity=p.quantity, price=p.price, 
+                                 potion_type=[p.red_ml, p.green_ml, p.blue_ml, p.dark_ml]))
     return items
 
 
