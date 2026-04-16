@@ -62,19 +62,6 @@ def get_potion(id: int):
         ).one()
     return row
 
-def add_potion(id: int, value: int):
-    with db.engine.begin() as connection:
-        connection.execute(
-            sqlalchemy.text(
-                f"""
-                UPDATE global_inventory 
-                WHERE id == id :id
-                SET quantity = quantity + :value
-                """
-            ),
-            [{"value": value, "id": id}]
-        )
-
 def get_potion_count() -> int:
     """
     Get total quantity of potions in inventory.

@@ -10,7 +10,8 @@ from typing import List
 from src.api.admin import reset
 from src import database as db
 from src.api.barrels import *
-from src.api.carts import checkout
+from src.api.bottler import get_bottle_plan, post_deliver_bottles
+from src.api.carts import CartCheckout, CartItem, Customer, checkout, create_cart, set_item_quantity
 
 
 def test_barrel_delivery() -> None:
@@ -50,7 +51,7 @@ def test_barrel_delivery() -> None:
     assert len(create_barrel_plan(1500, 100, 100, 100, 100, 100, delivery)) == 2
 
     assert delivery_summary.gold_paid == 1750
-
+    reset()
 
 def test_barrel_plan() -> None:
     wholesale_catalog: List[Barrel] = [
@@ -127,8 +128,9 @@ def test_barrel_plan() -> None:
     assert table_row[0] == 100
     for i in range(1, len(table_row)):
         assert table_row[i] == 0
+    reset()
 
-def test_barrel_plan() -> None:
+def test_barrel() -> None:
     reset()
     wholesale_catalog: List[Barrel] = [
         Barrel(
@@ -171,4 +173,32 @@ def test_barrel_plan() -> None:
     barrels = create_barrel_plan(1000, 50000, 400, 100, 200, 300, wholesale_catalog)
     assert len(barrels) == 1
     assert barrels[0].quantity == 50
+
+    reset()
+
+def test_cart_databases():
+    reset()
+
+    #Create mixes
+    with db.engine.begin() as connection:
+        connection.execute(
+            sqlalchemy.text(
+                """
+                UPDATE global_inventory SET 
+                gold = 1000,
+                red_ml = 1000,
+                blue_ml = 0,
+                green_ml = 0,
+                dark_ml = 0
+                """
+            )
+        )
+    mixes = get_bottle_plan()
+    post_deliver_bottles(mixes, 0)
+    response = create_cart(
+        Customer(customer_id="0", customer_name="Henry", character_class="Warrior", character_species="Dragon", level=10))
+    set_item_quantity(response.cart_id, "R100G0B0D0", CartItem(quantity=10))
+    checkout_response = checkout(cart_id=response.cart_id,  cart_checkout=CartCheckout(payment="gold"))
+
+    reset()
    

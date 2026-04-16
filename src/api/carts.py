@@ -4,7 +4,7 @@ import sqlalchemy
 from src.api import auth
 from enum import Enum
 from typing import List, Optional
-from src.api.helper import add_global_inventory, add_potion, get_global_inventory, get_potion
+from src.api.helper import add_global_inventory, increase_potions, get_global_inventory, get_potion
 from src import database as db
 
 router = APIRouter(
@@ -96,11 +96,11 @@ def create_cart(new_cart: Customer):
         id = connection.execute(
             sqlalchemy.text(
                 """
-                INSERT INTO cart_checkout (customer_id, customer_name, customer_species, customer_class)
-                VALUES (:customer_id, :customer_name, :customer_species, :customer_class)
+                INSERT INTO cart_checkout (customer_id, customer_name, customer_species, customer_class, level)
+                VALUES (:customer_id, :customer_name, :customer_species, :customer_class, :level)
                 RETURNING id;
                 """),
-                [{"customer_id": new_cart.customer_id, "customer_name" : new_cart.customer_name, "customer_species" : new_cart.character_species, "customer_class" : new_cart.character_class}])
+                [{"customer_id": new_cart.customer_id, "customer_name" : new_cart.customer_name, "customer_species" : new_cart.character_species, "customer_class" : new_cart.character_class, "level": new_cart.level}])
     id = id.fetchone().id # type: ignore
     return CartCreateResponse(cart_id=id)
 
@@ -156,15 +156,15 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
             sqlalchemy.text(
                 """
                 SELECT *
-                FROM cart_checkout
-                WHERE id = :id;
+                FROM cart_inventory
+                WHERE cart_id = :cart_id;
                 """),
-                [{"id": id}])
+                [{"cart_id": cart_id}])
     total_potions_bought = 0
     # Remove potions
     for potion in checkout:
-        total_potion_bought += potion.quantity
-        add_potion(potion.potion_id, get_potion(potion.id).quantity)
+        total_potions_bought += potion.quantity
+        increase_potions(potion.potion_id, -potion.quantity)
 
     total_gold_paid = total_potions_bought * 100  # Assuming each potion costs 75 gold
 
