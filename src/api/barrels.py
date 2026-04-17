@@ -97,7 +97,7 @@ def create_barrel_plan(
     for barrel in sorted(wholesale_catalog, key = lambda b : b.price / b.ml_per_barrel):
         price_sum = barrel.price * barrel.quantity
         # 100 to ml to make and 100 gold to price
-        if (barrel.ml_per_barrel / 100 ) * 100 < barrel.price * 0.5: 
+        if 100 * barrel.price / barrel.ml_per_barrel > 50: 
             # Avoid barrels that go over 50 per potion
             break
         elif price_sum <= gold - total_spend:
