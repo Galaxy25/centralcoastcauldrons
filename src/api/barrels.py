@@ -99,7 +99,7 @@ def create_barrel_plan(
         # 100 to ml to make and 100 gold to price
         if 100 * barrel.price / barrel.ml_per_barrel > 50: 
             # Avoid barrels that go over 50 per potion
-            break
+            pass
         elif price_sum <= gold - total_spend:
             total_spend += price_sum
             bought_barrels.append(BarrelOrder(sku=barrel.sku, quantity=barrel.quantity))
