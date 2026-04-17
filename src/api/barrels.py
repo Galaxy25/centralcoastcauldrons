@@ -95,22 +95,20 @@ def create_barrel_plan(
     bought_barrels = []
 
     for barrel in sorted(wholesale_catalog, key = lambda b : b.price / b.ml_per_barrel):
-        if gold - total_spend < barrel.price:
-            continue
         price_sum = barrel.price * barrel.quantity
         # 100 to ml to make and 100 gold to price
-        if 100 * barrel.price / barrel.ml_per_barrel > 50: 
+        if 100 * barrel.price / barrel.ml_per_barrel > 50 or gold - total_spend < barrel.price: 
             # Avoid barrels that go over 50 per potion
-            break
+            continue
         elif price_sum <= gold - total_spend:
             total_spend += price_sum
             bought_barrels.append(BarrelOrder(sku=barrel.sku, quantity=barrel.quantity))
         else:
             buyable = (gold - total_spend) // barrel.price
-            price_sum += buyable * barrel.price
+            total_spend += buyable * barrel.price
             if buyable > 0:
                 bought_barrels.append(BarrelOrder(sku=barrel.sku, quantity=buyable))
-            break
+            continue
 
     return bought_barrels
 
