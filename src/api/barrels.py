@@ -94,7 +94,9 @@ def create_barrel_plan(
     total_spend = 0
     bought_barrels = []
 
-    for barrel in sorted(wholesale_catalog, key = lambda b : b.price):
+    for barrel in sorted(wholesale_catalog, key = lambda b : b.price / b.ml_per_barrel):
+        if gold - total_spend < barrel.price:
+            continue
         price_sum = barrel.price * barrel.quantity
         # 100 to ml to make and 100 gold to price
         if 100 * barrel.price / barrel.ml_per_barrel > 50: 
