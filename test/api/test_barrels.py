@@ -48,7 +48,7 @@ def test_barrel_delivery() -> None:
     ]
 
     delivery_summary = calculate_barrel_summary(delivery)
-    assert len(create_barrel_plan(1500, 100, 100, 100, 100, 100, delivery)) == 2
+    assert len(create_barrel_plan(1500, 1000000, 100, 100, 100, 100, delivery)) == 2
 
     assert delivery_summary.gold_paid == 1750
     reset()
@@ -170,7 +170,7 @@ def test_barrel() -> None:
             )
         )
     
-    barrels = create_barrel_plan(1000, 50000, 400, 100, 200, 300, wholesale_catalog)
+    barrels = create_barrel_plan(1000, 1000000, 400, 100, 200, 300, wholesale_catalog)
     assert len(barrels) == 1
     assert barrels[0].quantity == 50
 

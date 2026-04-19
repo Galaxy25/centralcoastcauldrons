@@ -92,23 +92,55 @@ def create_barrel_plan(
     )
 
     total_spend = 0
+    ml_total = sum(get_global_inventory()[1:])
     bought_barrels = []
-
     for barrel in sorted(wholesale_catalog, key = lambda b : b.price / b.ml_per_barrel):
+        # Do not buy when ml content exceeds 1/5 of max capacity
+        inventory = get_global_inventory()
+        if inventory.red_ml / max_barrel_capacity > 0.2 and barrel.potion_type[0] == 1:
+            continue
+        if inventory.green_ml / max_barrel_capacity > 0.2 and barrel.potion_type[1] == 1:
+            continue
+        if inventory.blue_ml / max_barrel_capacity > 0.2 and barrel.potion_type[2] == 1:
+            continue
+        if inventory.dark_ml / max_barrel_capacity > 0.2 and barrel.potion_type[3] == 1:
+            continue
+
+
+
         price_sum = barrel.price * barrel.quantity
         # 100 to ml to make and 100 gold to price
         if 100 * barrel.price / barrel.ml_per_barrel > 50 or gold - total_spend < barrel.price: 
             # Avoid barrels that go over 50 per potion
             continue
         elif price_sum <= gold - total_spend:
-            total_spend += price_sum
-            bought_barrels.append(BarrelOrder(sku=barrel.sku, quantity=barrel.quantity))
+            # Avoid overflow
+            if ml_total + (barrel.quantity * barrel.ml_per_barrel) <= max_barrel_capacity:
+                total_spend += price_sum
+                ml_total += barrel.quantity * barrel.ml_per_barrel
+                bought_barrels.append(BarrelOrder(sku=barrel.sku, quantity=barrel.quantity))
+            else:
+                quantity = (max_barrel_capacity - ml_total) // barrel.ml_per_barrel
+                if quantity == 0:
+                    continue
+                total_spend += barrel.price * quantity
+                ml_total += quantity * barrel.ml_per_barrel
+                bought_barrels.append(BarrelOrder(sku=barrel.sku, quantity=quantity))
+                
         else:
             buyable = (gold - total_spend) // barrel.price
-            total_spend += buyable * barrel.price
-            if buyable > 0:
-                bought_barrels.append(BarrelOrder(sku=barrel.sku, quantity=buyable))
-            continue
+            if ml_total + buyable * barrel.ml_per_barrel <= max_barrel_capacity:
+                ml_total += barrel.quantity * barrel.ml_per_barrel
+                total_spend += buyable * barrel.price
+                if buyable > 0:
+                    bought_barrels.append(BarrelOrder(sku=barrel.sku, quantity=buyable))
+            else:
+                quantity = (max_barrel_capacity - ml_total) // barrel.ml_per_barrel
+                if quantity == 0:
+                    continue
+                total_spend += barrel.price * quantity
+                ml_total += quantity * barrel.ml_per_barrel
+                bought_barrels.append(BarrelOrder(sku=barrel.sku, quantity=quantity))
 
     return bought_barrels
 
