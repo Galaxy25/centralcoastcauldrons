@@ -3,11 +3,9 @@ from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field, field_validator
 from typing import List
 
-import sqlalchemy
 from src.api import auth
 from src.api.helper import *
 from src import database as db
-import random
 
 router = APIRouter(
     prefix="/barrels",
@@ -62,7 +60,7 @@ def post_deliver_barrels(barrels_delivered: List[Barrel], order_id: int):
     ml_options = ("red_ml", "green_ml", "blue_ml", "dark_ml")
 
     delivery = calculate_barrel_summary(barrels_delivered)
-    add_global_inventory("gold", -delivery.gold_paid)
+    update_gold(-delivery.gold_paid, f"Barrel delivery for order: {order_id}, gold paid: {delivery.gold_paid}  s")
 
 
     for barrel in barrels_delivered:
@@ -72,8 +70,7 @@ def post_deliver_barrels(barrels_delivered: List[Barrel], order_id: int):
         select = barrel.potion_type.index(highest_type)
 
         mlType = ml_options[select]
-        # Remove gold and add potion quantity
-        add_global_inventory(mlType, ml)
+        update_ml(**{mlType: ml}, message=f"Barrel delivery for order: {order_id}, {mlType} {ml}")
 
     pass
 
@@ -92,22 +89,11 @@ def create_barrel_plan(
     )
 
     total_spend = 0
-    ml_total = sum(get_global_inventory()[1:])
+    temp_ml_storage = [current_red_ml, current_green_ml, current_blue_ml, current_dark_ml]
     bought_barrels = []
+    max_barrel_capacity = max_barrel_capacity // 4
     for barrel in sorted(wholesale_catalog, key = lambda b : b.price / b.ml_per_barrel):
-        # Do not buy when ml content exceeds 1/5 of max capacity
-        inventory = get_global_inventory()
-        if inventory.red_ml / max_barrel_capacity > 0.2 and barrel.potion_type[0] == 1:
-            continue
-        if inventory.green_ml / max_barrel_capacity > 0.2 and barrel.potion_type[1] == 1:
-            continue
-        if inventory.blue_ml / max_barrel_capacity > 0.2 and barrel.potion_type[2] == 1:
-            continue
-        if inventory.dark_ml / max_barrel_capacity > 0.2 and barrel.potion_type[3] == 1:
-            continue
-
-
-
+        # Do not buy when ml content exceeds 1/4 of max capacity
         price_sum = barrel.price * barrel.quantity
         # 100 to ml to make and 100 gold to price
         if 100 * barrel.price / barrel.ml_per_barrel > 50 or gold - total_spend < barrel.price: 
@@ -115,31 +101,31 @@ def create_barrel_plan(
             continue
         elif price_sum <= gold - total_spend:
             # Avoid overflow
-            if ml_total + (barrel.quantity * barrel.ml_per_barrel) <= max_barrel_capacity:
+            if temp_ml_storage[barrel.potion_type.index(1)] + (barrel.quantity * barrel.ml_per_barrel) <= max_barrel_capacity:
                 total_spend += price_sum
-                ml_total += barrel.quantity * barrel.ml_per_barrel
+                temp_ml_storage[barrel.potion_type.index(1)] += barrel.quantity * barrel.ml_per_barrel
                 bought_barrels.append(BarrelOrder(sku=barrel.sku, quantity=barrel.quantity))
             else:
-                quantity = (max_barrel_capacity - ml_total) // barrel.ml_per_barrel
+                quantity = (max_barrel_capacity - temp_ml_storage[barrel.potion_type.index(1)]) // barrel.ml_per_barrel
                 if quantity == 0:
                     continue
                 total_spend += barrel.price * quantity
-                ml_total += quantity * barrel.ml_per_barrel
+                temp_ml_storage[barrel.potion_type.index(1)] += quantity * barrel.ml_per_barrel
                 bought_barrels.append(BarrelOrder(sku=barrel.sku, quantity=quantity))
                 
         else:
             buyable = (gold - total_spend) // barrel.price
-            if ml_total + buyable * barrel.ml_per_barrel <= max_barrel_capacity:
-                ml_total += barrel.quantity * barrel.ml_per_barrel
+            if temp_ml_storage[barrel.potion_type.index(1)] + buyable * barrel.ml_per_barrel <= max_barrel_capacity:
+                temp_ml_storage[barrel.potion_type.index(1)] += buyable * barrel.ml_per_barrel
                 total_spend += buyable * barrel.price
                 if buyable > 0:
                     bought_barrels.append(BarrelOrder(sku=barrel.sku, quantity=buyable))
             else:
-                quantity = (max_barrel_capacity - ml_total) // barrel.ml_per_barrel
+                quantity = (max_barrel_capacity - temp_ml_storage[barrel.potion_type.index(1)]) // barrel.ml_per_barrel
                 if quantity == 0:
                     continue
                 total_spend += barrel.price * quantity
-                ml_total += quantity * barrel.ml_per_barrel
+                temp_ml_storage[barrel.potion_type.index(1)] += quantity * barrel.ml_per_barrel
                 bought_barrels.append(BarrelOrder(sku=barrel.sku, quantity=quantity))
 
     return bought_barrels
@@ -153,16 +139,16 @@ def get_wholesale_purchase_plan(wholesale_catalog: List[Barrel]):
     """
     print(f"barrel catalog: {wholesale_catalog}")
 
-    row = get_global_inventory()
-    
+    gold_total = get_gold_total()
+    ml_total = get_ml_total()
 
     return create_barrel_plan(
-        gold=row.gold,
-        max_barrel_capacity=10000,
-        current_red_ml=row.red_ml,
-        current_green_ml=row.green_ml,
-        current_blue_ml=row.blue_ml,
-        current_dark_ml=row.dark_ml,
+        gold=gold_total,
+        max_barrel_capacity=get_capacity().barrel_capacity*10000,
+        current_red_ml=ml_total.red_ml,
+        current_green_ml=ml_total.green_ml,
+        current_blue_ml=ml_total.blue_ml,
+        current_dark_ml=ml_total.dark_ml,
         wholesale_catalog=wholesale_catalog
     )
  

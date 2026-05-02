@@ -4,7 +4,8 @@ import sqlalchemy
 from src.api import auth
 from enum import Enum
 from typing import List, Optional
-from src.api.helper import add_global_inventory, increase_potions, get_global_inventory, get_potion
+from src.api.UCB import increment_bought, update_ucb
+from src.api.helper import *
 from src import database as db
 
 router = APIRouter(
@@ -164,12 +165,13 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     # Remove potions
     for potion in checkout:
         total_potions_bought += potion.quantity
-        increase_potions(potion.potion_id, -potion.quantity)
+        increment_bought(potion.customer_id, potion.potion_id)
+        update_potions(potion.potion_id, -potion.quantity, message=f"Checkout for cart: {cart_id}, potion_id: {potion.potion_id}, quantity: {potion.quantity}")
+    update_ucb(potion.customer_id, potion.potion_id)
+    total_gold_paid = total_potions_bought * 100  # Assuming each potion costs 100 gold
+    update_gold(total_gold_paid, f"Checkout for cart: {cart_id}, gold paid: {total_gold_paid}")
 
-    total_gold_paid = total_potions_bought * 100  # Assuming each potion costs 75 gold
-
-    # Checkout transation: add gold
-    add_global_inventory("gold", total_gold_paid)
+    
 
 
     return CheckoutResponse(

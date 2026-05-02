@@ -26,38 +26,25 @@ def test_bottle_red_potions() -> None:
     assert result[0].quantity == 1
 
 def test_bottler_database() -> None: 
-    with db.engine.begin() as connection:
-        connection.execute(
-            sqlalchemy.text(
-                """
-                UPDATE global_inventory SET 
-                gold = 100,
-                red_ml = 400,
-                blue_ml = 200,
-                green_ml = 100,
-                dark_ml = 100
-                """
-            )
-        )
-    
+    reset()
+    update_ml(red_ml=400, blue_ml=200, green_ml=100, dark_ml=100)
+    ml_total = get_ml_total()
+    assert ml_total.red_ml == 400
+    assert ml_total.green_ml == 100
+    assert ml_total.blue_ml == 200
+    assert ml_total.dark_ml == 100
+
     assert sum([potions.quantity for potions in get_bottle_plan()]) != 0
     post_deliver_bottles(get_bottle_plan(), 0)
 
 
     reset()
     # Verify reset worked
-    with db.engine.begin() as connection:
-        table_row = connection.execute(
-            sqlalchemy.text(
-                """
-                SELECT gold, red_ml, green_ml, blue_ml, dark_ml
-                FROM global_inventory  
-                """
-            )
-        ).one()
-
-    assert table_row[0] == 100
-    for i in range(1, len(table_row)):
-        assert table_row[i] == 0
+    assert get_gold_total() == 100
+    ml_total = get_ml_total()
+    assert ml_total.red_ml == 0
+    assert ml_total.green_ml == 0
+    assert ml_total.blue_ml == 0
+    assert ml_total.dark_ml == 0
 
 

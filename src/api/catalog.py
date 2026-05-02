@@ -2,9 +2,8 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from typing import List, Annotated
 from src import database as db
-import sqlalchemy
-
-from src.api.helper import get_global_inventory, get_potion_inventory
+from src.api.UCB import increment_bought
+from src.api.helper import get_all_potions
 
 router = APIRouter()
 
@@ -25,17 +24,7 @@ class CatalogItem(BaseModel):
 # Placeholder function, you will replace this with a database call
 def create_catalog() -> List[CatalogItem]:
 
-    with db.engine.begin() as connection:
-        potions = connection.execute(
-            sqlalchemy.text(
-                """
-                SELECT *
-                FROM potion_inventory
-                WHERE quantity > 0
-                ORDER BY quantity DESC;
-                """
-            )
-        ).all()
+    potions = get_all_potions()
     
     items = []
     for p in potions[:6]:
