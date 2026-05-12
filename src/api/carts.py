@@ -177,7 +177,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
             increment_bought(connection, potion.potion_id)
             update_ucb(connection, potion.potion_id)
             update_potions(connection, potion.potion_id, -potion.quantity, message=f"Checkout for cart: {cart_id}, potion_id: {potion.potion_id}, quantity: {potion.quantity}")
-        total_gold_paid = total_potions_bought * 100
+        total_gold_paid = total_potions_bought * 75
         update_gold(connection, total_gold_paid, f"Checkout for cart: {cart_id}, gold paid: {total_gold_paid}")
 
     return CheckoutResponse(

@@ -97,7 +97,7 @@ def reset():
                     sqlalchemy.text(
                         """
                         INSERT INTO potion_inventory (red_ml, green_ml, blue_ml, dark_ml, price, item_sku, name)
-                        VALUES (:red, :green, :blue, :dark, 100, :item_sku, :name)
+                        VALUES (:red, :green, :blue, :dark, 75, :item_sku, :name)
                         """),
                         [{"red": red, "green" : green, "blue" : blue, "dark" : dark, "item_sku":name, "name":name}])
         
