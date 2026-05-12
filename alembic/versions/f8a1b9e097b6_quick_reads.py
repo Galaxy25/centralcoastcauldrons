@@ -30,16 +30,8 @@ def upgrade() -> None:
         sa.Column("dark_ml", sa.Integer(), nullable=False, server_default=sa.text("0")),
     )
 
-    op.create_table(
+    op.add_column(
         "potion_inventory",
-        sa.Column("id", sa.Integer(), primary_key=True, nullable=False),
-        sa.Column("red_ml", sa.Integer(), nullable=False, server_default=sa.text("0")),
-        sa.Column("green_ml", sa.Integer(), nullable=False, server_default=sa.text("0")),
-        sa.Column("blue_ml", sa.Integer(), nullable=False, server_default=sa.text("0")),
-        sa.Column("dark_ml", sa.Integer(), nullable=False, server_default=sa.text("0")),
-        sa.Column("price", sa.Integer(), nullable=False, server_default=sa.text("75")),
-        sa.Column("item_sku", sa.Text(), nullable=False),
-        sa.Column("name", sa.Text(), nullable=False),
         sa.Column("quantity", sa.Integer(), nullable=False, server_default=sa.text("0")),
     )
 
@@ -62,5 +54,5 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.drop_table("potion_inventory")
+    op.drop_column("potion_inventory", "quantity")
     op.drop_table("global_inventory")
