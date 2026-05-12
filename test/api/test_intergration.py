@@ -4,11 +4,13 @@ from src.api.admin import reset
 from src.api.barrels import Barrel, get_wholesale_purchase_plan, post_deliver_barrels
 from src.api.bottler import get_bottle_plan, post_deliver_bottles
 from src.api.helper import get_all_potions, get_ml_total, update_gold
+from src import database as db
 
 
 def test_simulation():
     reset()
-    update_gold(2000)
+    with db.engine.begin() as connection:
+        update_gold(connection, 2000)
     barrel_catalog: List[Barrel] = [
         Barrel(sku="RED", ml_per_barrel=500, potion_type=[1, 0, 0, 0], price=100, quantity=99),
         Barrel(sku="GREEN", ml_per_barrel=500, potion_type=[0, 1, 0, 0], price=100, quantity=99),
@@ -30,7 +32,8 @@ def test_simulation():
 
     post_deliver_barrels(barrels, 0)
 
-    ml_total = get_ml_total()
+    with db.engine.begin() as connection:
+        ml_total = get_ml_total(connection)
     assert ml_total.red_ml == 2000
     assert ml_total.green_ml == 2000
     assert ml_total.blue_ml == 2000
@@ -44,10 +47,10 @@ def test_simulation():
         sku = f"R{potion.potion_type[0]}G{potion.potion_type[1]}B{potion.potion_type[2]}D{potion.potion_type[3]}"
         expected[sku] = expected.get(sku, 0) + potion.quantity
 
-    potions = get_all_potions()
+    with db.engine.begin() as connection:
+        potions = get_all_potions(connection)
     assert len(potions) == len(expected)
     for potion in potions:
         assert potion.item_sku in expected
         assert potion.quantity == expected[potion.item_sku]
     assert len(potions) != 0
-

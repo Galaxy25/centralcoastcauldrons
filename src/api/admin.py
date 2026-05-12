@@ -368,7 +368,6 @@ def reset():
                 for game_day, potion_id, bought, shown, ucb_value in ucb_rows
             ],
         )
-
-    update_gold(100, "initial gold")
+        update_gold(connection, 100, "initial gold")
 
     

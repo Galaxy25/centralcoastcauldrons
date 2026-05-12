@@ -34,11 +34,12 @@ def get_inventory():
     what is reported here and my source of truth will be posted
     as errors on potion exchange.
     """
-    total_gold = get_gold_total()
-    total_ml = sum(get_ml_total())
-    total_potions = sum([i.quantity for i in get_all_potions()])
-    return InventoryAudit(number_of_potions=total_potions, 
-                          ml_in_barrels=total_ml, 
+    with db.engine.begin() as connection:
+        total_gold = get_gold_total(connection)
+        total_ml = sum(get_ml_total(connection))
+        total_potions = sum([i.quantity for i in get_all_potions(connection)])
+    return InventoryAudit(number_of_potions=total_potions,
+                          ml_in_barrels=total_ml,
                           gold=total_gold)
 
 
@@ -50,11 +51,12 @@ def get_capacity_plan():
     - Start with 1 capacity for 50 potions and 1 capacity for 10,000 ml of potion.
     - Each additional capacity unit costs 1000 gold.
     """
-    max_cu = get_gold_total() // 1000
-    max_cu -= 2
-    if max_cu <= 0:
-        return CapacityPlan(potion_capacity=0, ml_capacity=0)
-    capacity = get_capacity()
+    with db.engine.begin() as connection:
+        max_cu = get_gold_total(connection) // 1000
+        max_cu -= 2
+        if max_cu <= 0:
+            return CapacityPlan(potion_capacity=0, ml_capacity=0)
+        capacity = get_capacity(connection)
     potion_capacity = min(10 - capacity.potion_capacity, math.ceil(max_cu / 2))
     ml_capacity = min(10 - capacity.barrel_capacity, math.floor(max_cu / 2))
     return CapacityPlan(potion_capacity=potion_capacity, ml_capacity=ml_capacity)
@@ -71,8 +73,8 @@ def deliver_capacity_plan(capacity_purchase: CapacityPlan, order_id: int):
     """
     print(f"capacity delivered: {capacity_purchase} order_id: {order_id}")
     total_cost = (capacity_purchase.potion_capacity + capacity_purchase.ml_capacity) * 1000
-    update_gold(-total_cost, f"Capacity purchase for order: {order_id}, potion_capacity: {capacity_purchase.potion_capacity}, ml_capacity: {capacity_purchase.ml_capacity}")
     with db.engine.begin() as connection:
+        update_gold(connection, -total_cost, f"Capacity purchase for order: {order_id}, potion_capacity: {capacity_purchase.potion_capacity}, ml_capacity: {capacity_purchase.ml_capacity}")
         connection.execute(
             sqlalchemy.text(
                 """

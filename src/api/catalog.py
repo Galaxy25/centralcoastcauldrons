@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from typing import List, Annotated
 from src.api.UCB import increment_shown, update_ucb
 from src.api.helper import get_all_potions
+from src import database as db
 
 router = APIRouter()
 
@@ -22,21 +23,22 @@ class CatalogItem(BaseModel):
 
 # Placeholder function, you will replace this with a database call
 def create_catalog() -> List[CatalogItem]:
-    potions = get_all_potions()
+    with db.engine.begin() as connection:
+        potions = get_all_potions(connection)
 
-    items = []
-    for p in potions[:6]:
-        increment_shown(p.id)
-        update_ucb(p.id)
-        items.append(
-            CatalogItem(
-                sku=p.item_sku,
-                name=p.name,
-                quantity=p.quantity,
-                price=p.price,
-                potion_type=[p.red_ml, p.green_ml, p.blue_ml, p.dark_ml],
+        items = []
+        for p in potions[:6]:
+            increment_shown(connection, p.id)
+            update_ucb(connection, p.id)
+            items.append(
+                CatalogItem(
+                    sku=p.item_sku,
+                    name=p.name,
+                    quantity=p.quantity,
+                    price=p.price,
+                    potion_type=[p.red_ml, p.green_ml, p.blue_ml, p.dark_ml],
+                )
             )
-        )
     return items
 
 

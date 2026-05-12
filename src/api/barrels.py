@@ -60,17 +60,15 @@ def post_deliver_barrels(barrels_delivered: List[Barrel], order_id: int):
     ml_options = ("red_ml", "green_ml", "blue_ml", "dark_ml")
 
     delivery = calculate_barrel_summary(barrels_delivered)
-    update_gold(-delivery.gold_paid, f"Barrel delivery for order: {order_id}, gold paid: {delivery.gold_paid}  s")
+    with db.engine.begin() as connection:
+        update_gold(connection, -delivery.gold_paid, f"Barrel delivery for order: {order_id}, gold paid: {delivery.gold_paid}  s")
 
-
-    for barrel in barrels_delivered:
-        ml =  barrel.ml_per_barrel * barrel.quantity
-
-        highest_type = max(barrel.potion_type)
-        select = barrel.potion_type.index(highest_type)
-
-        mlType = ml_options[select]
-        update_ml(**{mlType: ml}, message=f"Barrel delivery for order: {order_id}, {mlType} {ml}")
+        for barrel in barrels_delivered:
+            ml = barrel.ml_per_barrel * barrel.quantity
+            highest_type = max(barrel.potion_type)
+            select = barrel.potion_type.index(highest_type)
+            mlType = ml_options[select]
+            update_ml(connection, **{mlType: ml}, message=f"Barrel delivery for order: {order_id}, {mlType} {ml}")
 
     pass
 
@@ -146,12 +144,14 @@ def get_wholesale_purchase_plan(wholesale_catalog: List[Barrel]):
     """
     print(f"barrel catalog: {wholesale_catalog}")
 
-    gold_total = get_gold_total()
-    ml_total = get_ml_total()
+    with db.engine.begin() as connection:
+        gold_total = get_gold_total(connection)
+        ml_total = get_ml_total(connection)
+        capacity = get_capacity(connection)
 
     return create_barrel_plan(
         gold=gold_total,
-        max_barrel_capacity=get_capacity().barrel_capacity*10000,
+        max_barrel_capacity=capacity.barrel_capacity*10000,
         current_red_ml=ml_total.red_ml,
         current_green_ml=ml_total.green_ml,
         current_blue_ml=ml_total.blue_ml,

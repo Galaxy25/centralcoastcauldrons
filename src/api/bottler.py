@@ -43,20 +43,23 @@ def post_deliver_bottles(potions_delivered: List[PotionMixes], order_id: int):
     """
     print(f"potions delivered: {potions_delivered} order_id: {order_id}")
 
-    for potion in potions_delivered:
-        update_ml(-potion.potion_type[0] * potion.quantity,
-                  -potion.potion_type[1] * potion.quantity,
-                  -potion.potion_type[2] * potion.quantity,
-                  -potion.potion_type[3] * potion.quantity,
-                  message=f"Bottle delivery for order: {order_id}, potion type: {potion.potion_type}, quantity: {potion.quantity}")
-        potion_sku = f"R{potion.potion_type[0]}G{potion.potion_type[1]}B{potion.potion_type[2]}D{potion.potion_type[3]}"
-        potion_id = get_potion_id(potion_sku)
-        update_potions(potion_id, potion.quantity, message=f"Bottle delivery for order: {order_id}, potion type: {potion.potion_type}, quantity: {potion.quantity}")
+    with db.engine.begin() as connection:
+        for potion in potions_delivered:
+            update_ml(connection,
+                      -potion.potion_type[0] * potion.quantity,
+                      -potion.potion_type[1] * potion.quantity,
+                      -potion.potion_type[2] * potion.quantity,
+                      -potion.potion_type[3] * potion.quantity,
+                      message=f"Bottle delivery for order: {order_id}, potion type: {potion.potion_type}, quantity: {potion.quantity}")
+            potion_sku = f"R{potion.potion_type[0]}G{potion.potion_type[1]}B{potion.potion_type[2]}D{potion.potion_type[3]}"
+            potion_id = get_potion_id(connection, potion_sku)
+            update_potions(connection, potion_id, potion.quantity, message=f"Bottle delivery for order: {order_id}, potion type: {potion.potion_type}, quantity: {potion.quantity}")
 
     pass
 
 
 def create_bottle_plan(
+    connection,
     red_ml: int,
     green_ml: int,
     blue_ml: int,
@@ -67,22 +70,21 @@ def create_bottle_plan(
     mixes = []
     remaining_slots = maximum_potion_capacity
     remaining_slots -= sum([potion.quantity for potion in current_potion_inventory])
-    with db.engine.begin() as connection:
-        rows = connection.execute(
-            sqlalchemy.text(
-                """
-                SELECT
-                    red_ml,
-                    green_ml,
-                    blue_ml,
-                    dark_ml
-                FROM potion_inventory
-                """
-            )
-        ).all()
+    rows = connection.execute(
+        sqlalchemy.text(
+            """
+            SELECT
+                red_ml,
+                green_ml,
+                blue_ml,
+                dark_ml
+            FROM potion_inventory
+            """
+        )
+    ).all()
     for p in rows:
         # Calculated the most possible potion of specific type that can be made.
-        most_possible = get_capacity().potion_capacity*50
+        most_possible = maximum_potion_capacity
         if p.red_ml != 0:
             most_possible = min(most_possible, red_ml // p.red_ml)
         if p.green_ml != 0:
@@ -113,21 +115,21 @@ def get_bottle_plan():
     Colors are expressed in integers from 0 to 100 that must sum up to exactly 100.
     """
 
-    ml = get_ml_total()
-    mixes = []
-    potions = get_all_potions()
-    for p in potions:
-        mixes.append(PotionMixes(potion_type=[p.red_ml, p.green_ml, p.blue_ml, p.dark_ml], quantity=p.quantity))
+    with db.engine.begin() as connection:
+        ml = get_ml_total(connection)
+        potions = get_all_potions(connection)
+        capacity = get_capacity(connection)
 
-    return create_bottle_plan(
-        red_ml=ml.red_ml,
-        green_ml=ml.green_ml,
-        blue_ml=ml.blue_ml,
-        dark_ml=ml.dark_ml,
-        maximum_potion_capacity=get_capacity().potion_capacity*50,
-        current_potion_inventory=mixes
-    )
+        mixes = []
+        for p in potions:
+            mixes.append(PotionMixes(potion_type=[p.red_ml, p.green_ml, p.blue_ml, p.dark_ml], quantity=p.quantity))
 
-
-if __name__ == "__main__":
-    print(get_bottle_plan())
+        return create_bottle_plan(
+            connection,
+            red_ml=ml.red_ml,
+            green_ml=ml.green_ml,
+            blue_ml=ml.blue_ml,
+            dark_ml=ml.dark_ml,
+            maximum_potion_capacity=capacity.potion_capacity*50,
+            current_potion_inventory=mixes
+        )

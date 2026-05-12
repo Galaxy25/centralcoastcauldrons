@@ -161,7 +161,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     """
 
     with db.engine.begin() as connection:
-        checkout = connection.execute(
+        cart_items = connection.execute(
             sqlalchemy.text(
                 """
                 SELECT *
@@ -170,19 +170,15 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                 """
             ),
             {"cart_id": cart_id},
-        )
-    total_potions_bought = 0
-    # Remove potions
-    for potion in checkout:
-        total_potions_bought += potion.quantity
-        increment_bought(potion.potion_id)
-        update_ucb(potion.potion_id)
-        update_potions(potion.potion_id, -potion.quantity, message=f"Checkout for cart: {cart_id}, potion_id: {potion.potion_id}, quantity: {potion.quantity}")
-    total_gold_paid = total_potions_bought * 100  # Assuming each potion costs 100 gold
-    update_gold(total_gold_paid, f"Checkout for cart: {cart_id}, gold paid: {total_gold_paid}")
-
-    
-
+        ).all()
+        total_potions_bought = 0
+        for potion in cart_items:
+            total_potions_bought += potion.quantity
+            increment_bought(connection, potion.potion_id)
+            update_ucb(connection, potion.potion_id)
+            update_potions(connection, potion.potion_id, -potion.quantity, message=f"Checkout for cart: {cart_id}, potion_id: {potion.potion_id}, quantity: {potion.quantity}")
+        total_gold_paid = total_potions_bought * 100
+        update_gold(connection, total_gold_paid, f"Checkout for cart: {cart_id}, gold paid: {total_gold_paid}")
 
     return CheckoutResponse(
         total_potions_bought=total_potions_bought, total_gold_paid=total_gold_paid
