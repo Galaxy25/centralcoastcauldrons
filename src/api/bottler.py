@@ -70,6 +70,10 @@ def create_bottle_plan(
     mixes = []
     remaining_slots = maximum_potion_capacity
     remaining_slots -= sum([potion.quantity for potion in current_potion_inventory])
+    per_potion_type_limit = max(5, math.ceil(maximum_potion_capacity / 36))
+    current_quantities = {
+        tuple(potion.potion_type): potion.quantity for potion in current_potion_inventory
+    }
     rows = connection.execute(
         sqlalchemy.text(
             """
@@ -93,8 +97,11 @@ def create_bottle_plan(
             most_possible = min(most_possible, blue_ml // p.blue_ml)
         if p.dark_ml != 0:
             most_possible = min(most_possible, dark_ml // p.dark_ml)
+        potion_type = [p.red_ml, p.green_ml, p.blue_ml, p.dark_ml]
+        existing_quantity = current_quantities.get(tuple(potion_type), 0)
+        most_possible = min(most_possible, per_potion_type_limit - existing_quantity)
         most_possible = min(most_possible, remaining_slots)
-        if most_possible == 0:
+        if most_possible <= 0:
             continue
         red_ml -= most_possible * p.red_ml
         green_ml -= most_possible * p.green_ml
@@ -102,7 +109,7 @@ def create_bottle_plan(
         dark_ml -= most_possible * p.dark_ml
         remaining_slots -= most_possible
         mixes.append(PotionMixes(
-            potion_type=[p.red_ml, p.green_ml, p.blue_ml, p.dark_ml], 
+            potion_type=potion_type,
             quantity=most_possible))
     return mixes
 

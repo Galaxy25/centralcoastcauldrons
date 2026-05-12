@@ -49,3 +49,56 @@ def test_bottler_database() -> None:
     assert ml_total.green_ml == 0
     assert ml_total.blue_ml == 0
     assert ml_total.dark_ml == 0
+
+
+def test_bottle_plan_limits_each_potion_type_to_minimum_limit() -> None:
+    reset()
+
+    with db.engine.begin() as connection:
+        result = create_bottle_plan(
+            connection,
+            red_ml=10_000,
+            green_ml=0,
+            blue_ml=0,
+            dark_ml=0,
+            maximum_potion_capacity=50,
+            current_potion_inventory=[],
+        )
+
+    assert result == [PotionMixes(potion_type=[100, 0, 0, 0], quantity=5)]
+
+
+def test_bottle_plan_limits_each_potion_type_to_capacity_share() -> None:
+    reset()
+
+    with db.engine.begin() as connection:
+        result = create_bottle_plan(
+            connection,
+            red_ml=10_000,
+            green_ml=0,
+            blue_ml=0,
+            dark_ml=0,
+            maximum_potion_capacity=360,
+            current_potion_inventory=[],
+        )
+
+    assert result == [PotionMixes(potion_type=[100, 0, 0, 0], quantity=10)]
+
+
+def test_bottle_plan_accounts_for_existing_potion_type_inventory() -> None:
+    reset()
+
+    with db.engine.begin() as connection:
+        result = create_bottle_plan(
+            connection,
+            red_ml=10_000,
+            green_ml=0,
+            blue_ml=0,
+            dark_ml=0,
+            maximum_potion_capacity=50,
+            current_potion_inventory=[
+                PotionMixes(potion_type=[100, 0, 0, 0], quantity=4)
+            ],
+        )
+
+    assert result == [PotionMixes(potion_type=[100, 0, 0, 0], quantity=1)]
