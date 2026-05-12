@@ -94,15 +94,20 @@ def create_cart(new_cart: Customer):
     """
 
     with db.engine.begin() as connection:
+        transaction_id = connection.execute(
+            sqlalchemy.text("INSERT INTO transactions (description) VALUES (:msg) RETURNING id"),
+            {"msg": f"Cart created for {new_cart.customer_id}"},
+        ).one().id
         id = connection.execute(
             sqlalchemy.text(
                 """
-                INSERT INTO cart_checkout (customer_id, customer_name, customer_species, customer_class, level)
-                VALUES (:customer_id, :customer_name, :customer_species, :customer_class, :level)
+                INSERT INTO cart_checkout (customer_id, customer_name, customer_species, customer_class, level, transaction_id)
+                VALUES (:customer_id, :customer_name, :customer_species, :customer_class, :level, :transaction_id)
                 RETURNING id;
-                """),
-                [{"customer_id": new_cart.customer_id, "customer_name" : new_cart.customer_name, "customer_species" : new_cart.character_species, "customer_class" : new_cart.character_class, "level": new_cart.level}])
-    id = id.fetchone().id # type: ignore
+                """
+            ),
+            {"customer_id": new_cart.customer_id, "customer_name": new_cart.customer_name, "customer_species": new_cart.character_species, "customer_class": new_cart.character_class, "level": new_cart.level, "transaction_id": transaction_id},
+        ).one().id
     return CartCreateResponse(cart_id=id)
 
 
@@ -122,17 +127,20 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
                 """
                 SELECT id
                 FROM potion_inventory
-                WHERE item_sku = :item_sku;
-                """),
-                [{"cart_id": cart_id, "item_sku": item_sku, "quantity": cart_item.quantity}])
-        potion_id = potion_id.fetchone().id  # type: ignore
+                WHERE item_sku = :item_sku
+                """
+            ),
+            {"item_sku": item_sku},
+        ).one().id
         connection.execute(
             sqlalchemy.text(
                 """
                 INSERT INTO cart_inventory (cart_id, potion_id, quantity)
                 VALUES (:cart_id, :potion_id, :quantity)
-                """),
-                [{"cart_id": cart_id, "potion_id": potion_id, "quantity": cart_item.quantity}])
+                """
+            ),
+            {"cart_id": cart_id, "potion_id": potion_id, "quantity": cart_item.quantity},
+        )
 
     return status.HTTP_204_NO_CONTENT
 
@@ -158,16 +166,18 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                 """
                 SELECT *
                 FROM cart_inventory
-                WHERE cart_id = :cart_id;
-                """),
-                [{"cart_id": cart_id}])
+                WHERE cart_id = :cart_id
+                """
+            ),
+            {"cart_id": cart_id},
+        )
     total_potions_bought = 0
     # Remove potions
     for potion in checkout:
         total_potions_bought += potion.quantity
-        increment_bought(potion.customer_id, potion.potion_id)
+        increment_bought(potion.potion_id)
+        update_ucb(potion.potion_id)
         update_potions(potion.potion_id, -potion.quantity, message=f"Checkout for cart: {cart_id}, potion_id: {potion.potion_id}, quantity: {potion.quantity}")
-    update_ucb(potion.customer_id, potion.potion_id)
     total_gold_paid = total_potions_bought * 100  # Assuming each potion costs 100 gold
     update_gold(total_gold_paid, f"Checkout for cart: {cart_id}, gold paid: {total_gold_paid}")
 

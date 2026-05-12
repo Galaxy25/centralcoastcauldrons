@@ -11,8 +11,8 @@ def get_gold_total() -> int:
         row = connection.execute(
             sqlalchemy.text(
                 """
-                SELECT COALESCE(SUM(change), 0) AS total_gold
-                FROM gold_history;
+                SELECT gold AS total_gold
+                FROM global_inventory
                 """
             )
         ).one()
@@ -42,6 +42,15 @@ def update_gold(value: int, message: str = "gold change") -> None:
             ),
             {"transaction_id": transaction_id, "value": value}
         )
+        connection.execute(
+            sqlalchemy.text(
+                """
+                UPDATE global_inventory
+                SET gold = gold + :value
+                """
+            ),
+            {"value": value},
+        )
 
 def get_ml_total() -> Any:
     """
@@ -52,11 +61,11 @@ def get_ml_total() -> Any:
             sqlalchemy.text(
                 """
                 SELECT
-                    COALESCE(SUM(red_ml_change), 0) AS red_ml,
-                    COALESCE(SUM(green_ml_change), 0) AS green_ml,
-                    COALESCE(SUM(blue_ml_change), 0) AS blue_ml,
-                    COALESCE(SUM(dark_ml_change), 0) AS dark_ml
-                FROM ml_history;
+                    red_ml,
+                    green_ml,
+                    blue_ml,
+                    dark_ml
+                FROM global_inventory
                 """
             )
         ).one()
@@ -94,6 +103,23 @@ def update_ml(red_ml: int = 0, green_ml: int = 0,
                 "dark_change": dark_ml,
             }
         )
+        connection.execute(
+            sqlalchemy.text(
+                """
+                UPDATE global_inventory
+                SET red_ml = red_ml + :red_change,
+                    green_ml = green_ml + :green_change,
+                    blue_ml = blue_ml + :blue_change,
+                    dark_ml = dark_ml + :dark_change
+                """
+            ),
+            {
+                "red_change": red_ml,
+                "green_change": green_ml,
+                "blue_change": blue_ml,
+                "dark_change": dark_ml,
+            },
+        )
 
 
 
@@ -102,9 +128,9 @@ def get_potion(id: int) -> int:
         row = connection.execute(
             sqlalchemy.text(
                 """
-                SELECT COALESCE(SUM(change), 0) AS potion_count
-                FROM potion_history
-                WHERE potion_id = :id;
+                SELECT quantity AS potion_count
+                FROM potion_inventory
+                WHERE id = :id;
                 """
             ), {"id" : id}
         ).one()
@@ -146,6 +172,16 @@ def update_potions(id: int, count: int, message: str = "potion change"):
                 """
             ), {"transaction_id": transaction_id, "id": id, "count": count}
         )
+        connection.execute(
+            sqlalchemy.text(
+                """
+                UPDATE potion_inventory
+                SET quantity = quantity + :count
+                WHERE id = :id
+                """
+            ),
+            {"id": id, "count": count},
+        )
 
 def get_all_potions():
     """
@@ -156,14 +192,18 @@ def get_all_potions():
             sqlalchemy.text(
                 """
                 SELECT
-                    potion_inventory.id,
-                    COALESCE(SUM(potion_history.change), 0) AS quantity,
-                    potion_inventory.item_sku
+                    id,
+                    red_ml,
+                    green_ml,
+                    blue_ml,
+                    dark_ml,
+                    price,
+                    item_sku,
+                    name,
+                    quantity
                 FROM potion_inventory
-                JOIN potion_history ON potion_inventory.id = potion_history.potion_id
-                GROUP BY potion_inventory.id
-                HAVING COALESCE(SUM(potion_history.change), 0) > 0
-                ORDER BY potion_inventory.id ASC;
+                WHERE quantity > 0
+                ORDER BY id ASC;
                 """
             )
         ).all()

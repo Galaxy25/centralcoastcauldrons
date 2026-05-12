@@ -1,5 +1,9 @@
 from src.api.admin import reset
+from src.api.catalog import get_catalog
 from src.api.helper import *
+from src.api.UCB import get_game_day, increment_bought
+from src import database as db
+import sqlalchemy
 
 def test_gold_history() -> None:
     reset()
@@ -55,4 +59,151 @@ def test_potion_history() -> None:
     assert potions[1].quantity == 1
     assert potions[2].quantity == 1
     assert potions[3].quantity == 5
+
+
+def test_reset_seeds_ucb_by_game_day() -> None:
+    reset()
+
+    with db.engine.begin() as connection:
+        ucb_count = connection.execute(
+            sqlalchemy.text("SELECT COUNT(*) FROM ucb")
+        ).scalar_one()
+        pure_blue_tuesday = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT bought, shown
+                FROM ucb
+                JOIN potion_inventory ON potion_inventory.id = ucb.potion_id
+                WHERE ucb.game_day = 'Tuesday'
+                  AND potion_inventory.item_sku = 'R0G0B100D0'
+                """
+            )
+        ).one()
+        pure_red_thursday = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT bought, shown
+                FROM ucb
+                JOIN potion_inventory ON potion_inventory.id = ucb.potion_id
+                WHERE ucb.game_day = 'Thursday'
+                  AND potion_inventory.item_sku = 'R100G0B0D0'
+                """
+            )
+        ).one()
+        red_green_saturday = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT bought, shown
+                FROM ucb
+                JOIN potion_inventory ON potion_inventory.id = ucb.potion_id
+                WHERE ucb.game_day = 'Saturday'
+                  AND potion_inventory.item_sku = 'R50G50B0D0'
+                """
+            )
+        ).one()
+        red_green_sunday = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT bought, shown
+                FROM ucb
+                JOIN potion_inventory ON potion_inventory.id = ucb.potion_id
+                WHERE ucb.game_day = 'Sunday'
+                  AND potion_inventory.item_sku = 'R50G50B0D0'
+                """
+            )
+        ).one()
+        dark_potion = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT bought, shown
+                FROM ucb
+                JOIN potion_inventory ON potion_inventory.id = ucb.potion_id
+                WHERE ucb.game_day = 'Sunday'
+                  AND potion_inventory.item_sku = 'R0G0B0D100'
+                """
+            )
+        ).one()
+
+    assert ucb_count == 245
+    assert pure_blue_tuesday == (5, 5)
+    assert pure_red_thursday == (5, 5)
+    assert red_green_saturday == (3, 5)
+    assert red_green_sunday == (1, 5)
+    assert dark_potion == (1, 2)
+
+
+def test_catalog_increments_shown_for_visible_potions() -> None:
+    reset()
+    for potion_id in range(1, 8):
+        update_potions(potion_id, 1)
+
+    game_day = get_game_day()
+    with db.engine.begin() as connection:
+        before_visible = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT potion_id, shown
+                FROM ucb
+                WHERE game_day = :game_day
+                  AND potion_id BETWEEN 1 AND 7
+                ORDER BY potion_id
+                """
+            ),
+            {"game_day": game_day},
+        ).all()
+
+    catalog = get_catalog()
+
+    with db.engine.begin() as connection:
+        after_visible = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT potion_id, shown
+                FROM ucb
+                WHERE game_day = :game_day
+                  AND potion_id BETWEEN 1 AND 7
+                ORDER BY potion_id
+                """
+            ),
+            {"game_day": game_day},
+        ).all()
+
+    assert len(catalog) == 6
+    assert [row.shown for row in after_visible[:6]] == [row.shown + 1 for row in before_visible[:6]]
+    assert after_visible[6].shown == before_visible[6].shown
+
+
+def test_increment_bought_updates_ucb_counter() -> None:
+    reset()
+    game_day = get_game_day()
+
+    with db.engine.begin() as connection:
+        before_bought = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT bought
+                FROM ucb
+                WHERE game_day = :game_day
+                  AND potion_id = 5
+                """
+            ),
+            {"game_day": game_day},
+        ).scalar_one()
+
+    increment_bought(5)
+
+    with db.engine.begin() as connection:
+        after_bought = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT bought
+                FROM ucb
+                WHERE game_day = :game_day
+                  AND potion_id = 5
+                """
+            ),
+            {"game_day": game_day},
+        ).scalar_one()
+
+    assert after_bought == before_bought + 1
 

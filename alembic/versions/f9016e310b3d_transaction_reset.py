@@ -45,11 +45,9 @@ def upgrade() -> None:
         sa.Column("barrel_capacity", sa.Integer(), nullable=False),
     )
 
-    
-
     op.create_table(
         "cart_checkout",
-        sa.Column("id", sa.Integer(), primary_key=True, nullable=False, autoincrement=False),
+        sa.Column("id", sa.Integer(), primary_key=True, nullable=False),
         sa.Column("customer_id", sa.Text(), nullable=False),
         sa.Column("customer_name", sa.Text(), nullable=True),
         sa.Column("customer_species", sa.Text(), nullable=True),
@@ -126,6 +124,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), primary_key=True, nullable=False),
         sa.Column("cart_id", sa.Integer(), nullable=False),
         sa.Column("potion_id", sa.Integer(), nullable=False),
+        sa.Column("quantity", sa.Integer(), nullable=False, server_default=sa.text("1")),
         sa.ForeignKeyConstraint(
             ["cart_id"],
             ["cart_checkout.id"],
@@ -141,21 +140,17 @@ def upgrade() -> None:
     op.create_table(
         "ucb",
         sa.Column("id", sa.Integer(), primary_key=True, nullable=False),
-        sa.Column("customer_id", sa.Text(), nullable=False),
-        sa.Column("potion_id", sa.Integer(), nullable=True),
-        sa.Column("bought", sa.Integer(), nullable=True),
-        sa.Column("shown", sa.Integer(), nullable=True),
-        sa.Column("ucb_value", sa.Float(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["customer_id"],
-            ["cart_checkout.customer_id"],
-            name="ucb_customer_id_fkey",
-        ),
+        sa.Column("game_day", sa.Text(), nullable=False),
+        sa.Column("potion_id", sa.Integer(), nullable=False),
+        sa.Column("bought", sa.Integer(), nullable=False, server_default=sa.text("0")),
+        sa.Column("shown", sa.Integer(), nullable=False, server_default=sa.text("0")),
+        sa.Column("ucb_value", sa.Float(), nullable=False, server_default=sa.text("0")),
         sa.ForeignKeyConstraint(
             ["potion_id"],
             ["potion_inventory.id"],
             name="ucb_potion_id_fkey",
         ),
+        sa.UniqueConstraint("game_day", "potion_id", name="uq_ucb_game_day_potion_id"),
     )
 
 

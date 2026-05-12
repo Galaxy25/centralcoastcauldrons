@@ -31,10 +31,10 @@ def test_simulation():
     post_deliver_barrels(barrels, 0)
 
     ml_total = get_ml_total()
-    assert ml_total.red_ml == 2500
-    assert ml_total.green_ml == 2500
-    assert ml_total.blue_ml == 2500
-    assert ml_total.dark_ml == 2500
+    assert ml_total.red_ml == 2000
+    assert ml_total.green_ml == 2000
+    assert ml_total.blue_ml == 2000
+    assert ml_total.dark_ml == 4000
 
     plan = get_bottle_plan()
     post_deliver_bottles(plan, 1)
