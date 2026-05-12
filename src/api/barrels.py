@@ -96,42 +96,33 @@ def create_barrel_plan(
         max_barrel_capacity * 40 // 100,
     ]
     for barrel in sorted(wholesale_catalog, key = lambda b : b.price / b.ml_per_barrel):
-        color_index = barrel.potion_type.index(1)
-        color_capacity = color_capacity_limits[color_index]
-        # Do not buy when ml content exceeds the configured per-color capacity
-        price_sum = barrel.price * barrel.quantity
-        # 100 to ml to make and 100 gold to price
-        if 100 * barrel.price / barrel.ml_per_barrel > 50 or gold - total_spend < barrel.price: 
-            # Avoid barrels that go over 50 per potion
+        if barrel.quantity <= 0:
             continue
-        elif price_sum <= gold - total_spend:
-            # Avoid overflow
-            if temp_ml_storage[color_index] + (barrel.quantity * barrel.ml_per_barrel) <= color_capacity:
-                total_spend += price_sum
-                temp_ml_storage[color_index] += barrel.quantity * barrel.ml_per_barrel
-                bought_barrels.append(BarrelOrder(sku=barrel.sku, quantity=barrel.quantity))
-            else:
-                quantity = (color_capacity - temp_ml_storage[color_index]) // barrel.ml_per_barrel
-                if quantity == 0:
-                    continue
-                total_spend += barrel.price * quantity
-                temp_ml_storage[color_index] += quantity * barrel.ml_per_barrel
-                bought_barrels.append(BarrelOrder(sku=barrel.sku, quantity=quantity))
-                
+
+        remaining_gold = gold - total_spend
+
+        color_index = barrel.potion_type.index(1.0)
+        color_capacity = color_capacity_limits[color_index]
+        remaining_color_capacity = color_capacity - temp_ml_storage[color_index]
+        capacity_quantity = remaining_color_capacity // barrel.ml_per_barrel
+
+        if (capacity_quantity <= 0
+            or 100 * barrel.price / barrel.ml_per_barrel > 50
+            or remaining_gold < barrel.price):
+            continue
+
+        if barrel.price == 0:
+            affordable_quantity = barrel.quantity
         else:
-            buyable = (gold - total_spend) // barrel.price
-            if temp_ml_storage[color_index] + buyable * barrel.ml_per_barrel <= color_capacity:
-                temp_ml_storage[color_index] += buyable * barrel.ml_per_barrel
-                total_spend += buyable * barrel.price
-                if buyable > 0:
-                    bought_barrels.append(BarrelOrder(sku=barrel.sku, quantity=buyable))
-            else:
-                quantity = (color_capacity - temp_ml_storage[color_index]) // barrel.ml_per_barrel
-                if quantity == 0:
-                    continue
-                total_spend += barrel.price * quantity
-                temp_ml_storage[color_index] += quantity * barrel.ml_per_barrel
-                bought_barrels.append(BarrelOrder(sku=barrel.sku, quantity=quantity))
+            affordable_quantity = remaining_gold // barrel.price
+
+        quantity = min(barrel.quantity, capacity_quantity, affordable_quantity)
+        if quantity <= 0:
+            continue
+
+        total_spend += barrel.price * quantity
+        temp_ml_storage[color_index] += quantity * barrel.ml_per_barrel
+        bought_barrels.append(BarrelOrder(sku=barrel.sku, quantity=quantity))
 
     return bought_barrels
 
