@@ -101,7 +101,7 @@ def create_barrel_plan(
 
         remaining_gold = gold - total_spend
 
-        color_index = barrel.potion_type.index(1.0)
+        color_index = barrel.potion_type.index(max(barrel.potion_type))
         color_capacity = color_capacity_limits[color_index]
         remaining_color_capacity = color_capacity - temp_ml_storage[color_index]
         capacity_quantity = remaining_color_capacity // barrel.ml_per_barrel
