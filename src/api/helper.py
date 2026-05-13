@@ -104,6 +104,32 @@ def get_all_potions(connection):
     ).all()
 
 
+def get_potions_by_ucb(connection, game_day: str):
+    return connection.execute(
+        sqlalchemy.text(
+            """
+            SELECT
+                potion_inventory.id,
+                potion_inventory.red_ml,
+                potion_inventory.green_ml,
+                potion_inventory.blue_ml,
+                potion_inventory.dark_ml,
+                potion_inventory.price,
+                potion_inventory.item_sku,
+                potion_inventory.name,
+                potion_inventory.quantity
+            FROM potion_inventory
+            JOIN ucb
+                ON potion_inventory.id = ucb.potion_id
+               AND ucb.game_day = :game_day
+            WHERE potion_inventory.quantity > 0
+            ORDER BY ucb.ucb_value DESC, potion_inventory.id ASC
+            """
+        ),
+        {"game_day": game_day},
+    ).all()
+
+
 def get_capacity(connection):
     return connection.execute(
         sqlalchemy.text("SELECT potion_capacity, barrel_capacity FROM capacity_config")

@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from typing import List, Annotated
-from src.api.UCB import increment_shown, update_ucb
-from src.api.helper import get_all_potions
+from src.api.UCB import get_game_day, increment_shown, update_ucb
+from src.api.helper import get_potions_by_ucb
 from src import database as db
 
 router = APIRouter()
@@ -24,12 +24,11 @@ class CatalogItem(BaseModel):
 # Placeholder function, you will replace this with a database call
 def create_catalog() -> List[CatalogItem]:
     with db.engine.begin() as connection:
-        potions = get_all_potions(connection)
+        potions = get_potions_by_ucb(connection, get_game_day())
 
         items = []
         for p in potions[:6]:
             increment_shown(connection, p.id)
-            update_ucb(connection, p.id)
             items.append(
                 CatalogItem(
                     sku=p.item_sku,
