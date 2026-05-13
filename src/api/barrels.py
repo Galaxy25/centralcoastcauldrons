@@ -91,9 +91,9 @@ def create_barrel_plan(
     bought_barrels = []
     color_capacity_limits = [
         max_barrel_capacity * 0 // 100,
-        max_barrel_capacity * 30 // 100,
-        max_barrel_capacity * 30 // 100,
-        max_barrel_capacity * 40 // 100,
+        max_barrel_capacity * 50 // 100,
+        max_barrel_capacity * 0 // 100,
+        max_barrel_capacity * 50 // 100,
     ]
     for barrel in sorted(wholesale_catalog, key = lambda b : b.price / b.ml_per_barrel):
         if barrel.quantity <= 0:
