@@ -103,11 +103,6 @@ def create_barrel_plan(
         remaining_gold = gold - total_spend
 
         color_index = barrel.potion_type.index(max(barrel.potion_type))
-        # Stop overbuying specific color for now.
-        if already_bought[color_index]:
-            continue
-        else:
-            already_bought[color_index] = True
         color_capacity = color_capacity_limits[color_index]
         remaining_color_capacity = color_capacity - temp_ml_storage[color_index]
         capacity_quantity = remaining_color_capacity // barrel.ml_per_barrel
@@ -125,6 +120,12 @@ def create_barrel_plan(
         quantity = min(barrel.quantity, capacity_quantity, affordable_quantity)
         if quantity <= 0:
             continue
+
+        # Stop overbuying specific color for now.
+        if already_bought[color_index]:
+            continue
+        else:
+            already_bought[color_index] = True
 
         total_spend += barrel.price * quantity
         temp_ml_storage[color_index] += quantity * barrel.ml_per_barrel
