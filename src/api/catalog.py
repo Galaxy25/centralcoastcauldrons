@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from typing import List, Annotated
 from src.api.UCB import get_game_day, increment_shown, update_ucb
-from src.api.helper import get_potions_by_ucb
+from src.api.helper import POTION_PRICE, get_potions_by_ucb
 from src import database as db
 
 router = APIRouter()
@@ -34,7 +34,7 @@ def create_catalog() -> List[CatalogItem]:
                     sku=p.item_sku,
                     name=p.name,
                     quantity=p.quantity,
-                    price=p.price,
+                    price=POTION_PRICE,
                     potion_type=[p.red_ml, p.green_ml, p.blue_ml, p.dark_ml],
                 )
             )

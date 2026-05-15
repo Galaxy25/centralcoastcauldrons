@@ -107,8 +107,9 @@ def create_barrel_plan(
         remaining_color_capacity = color_capacity - temp_ml_storage[color_index]
         capacity_quantity = remaining_color_capacity // barrel.ml_per_barrel
 
+        barrel_cost_per_potion = 100 * barrel.price / barrel.ml_per_barrel
         if (capacity_quantity <= 0
-            or 100 * barrel.price / barrel.ml_per_barrel > 50
+            or barrel_cost_per_potion > POTION_PRICE
             or remaining_gold < barrel.price):
             continue
 

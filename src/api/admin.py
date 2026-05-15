@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, status
 import sqlalchemy
 from src.api import auth
 from src import database as db
-from src.api.helper import update_gold
+from src.api.helper import POTION_PRICE, update_gold
 
 router = APIRouter(
     prefix="/admin",
@@ -97,9 +97,9 @@ def reset():
                     sqlalchemy.text(
                         """
                         INSERT INTO potion_inventory (red_ml, green_ml, blue_ml, dark_ml, price, item_sku, name)
-                        VALUES (:red, :green, :blue, :dark, 75, :item_sku, :name)
+                        VALUES (:red, :green, :blue, :dark, :price, :item_sku, :name)
                         """),
-                        [{"red": red, "green" : green, "blue" : blue, "dark" : dark, "item_sku":name, "name":name}])
+                        [{"red": red, "green" : green, "blue" : blue, "dark" : dark, "price": POTION_PRICE, "item_sku":name, "name":name}])
         
         # Seeding data from previous card id
         ucb_rows = [

@@ -96,7 +96,7 @@ def upgrade() -> None:
         sa.Column("green_ml", sa.Integer(), nullable=True, server_default=sa.text("0")),
         sa.Column("blue_ml", sa.Integer(), nullable=True, server_default=sa.text("0")),
         sa.Column("dark_ml", sa.Integer(), nullable=True, server_default=sa.text("0")),
-        sa.Column("price", sa.Integer(), nullable=True, server_default=sa.text("75")),
+        sa.Column("price", sa.Integer(), nullable=True, server_default=sa.text("50")),
         sa.Column("item_sku", sa.Text(), nullable=True),
         sa.Column("name", sa.Text(), nullable=True),
     )
