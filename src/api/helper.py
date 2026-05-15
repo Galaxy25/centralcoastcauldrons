@@ -1,7 +1,7 @@
 from typing import Any
 import sqlalchemy
 
-POTION_PRICE = 40
+POTION_PRICE = 50
 
 
 def get_gold_total(connection) -> int:
