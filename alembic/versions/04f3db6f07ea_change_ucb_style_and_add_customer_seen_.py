@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from src.api.UCB import seed_ucb_for_class
 
 
 # revision identifiers, used by Alembic.
@@ -110,46 +111,26 @@ def upgrade() -> None:
             """
         )
     )
-    op.execute(
-        sa.text(
-            """
-            WITH preferences(character_class, red_ml, green_ml, blue_ml, dark_ml, total_bought) AS (
-                VALUES
-                    ('Hunter', 50, 50, 0, 0, 6),
-                    ('Runesmith', 0, 0, 100, 0, 8),
-                    ('Seer', 0, 100, 0, 0, 6),
-                    ('Warrior', 100, 0, 0, 0, 20),
-                    ('Wolf-Warrior', 75, 25, 0, 0, 6)
-            )
-            INSERT INTO ucb (character_class, potion_id, bought, shown, ucb_value)
-            SELECT
-                preferences.character_class,
-                potion_inventory.id,
-                CASE
-                    WHEN potion_inventory.red_ml = preferences.red_ml
-                     AND potion_inventory.green_ml = preferences.green_ml
-                     AND potion_inventory.blue_ml = preferences.blue_ml
-                     AND potion_inventory.dark_ml = preferences.dark_ml
-                    THEN preferences.total_bought
-                    ELSE 0
-                END AS bought,
-                preferences.total_bought AS shown,
-                (
-                    CASE
-                        WHEN potion_inventory.red_ml = preferences.red_ml
-                         AND potion_inventory.green_ml = preferences.green_ml
-                         AND potion_inventory.blue_ml = preferences.blue_ml
-                         AND potion_inventory.dark_ml = preferences.dark_ml
-                        THEN preferences.total_bought::double precision / preferences.total_bought
-                        ELSE 0
-                    END
-                    + sqrt((2.0 * ln(preferences.total_bought + 1)) / preferences.total_bought)
-                ) AS ucb_value
-            FROM preferences
-            CROSS JOIN potion_inventory
-            """
-        )
-    )
+    connection = op.get_bind()
+    seed_preferences = [
+        ("Hunter", "R50G50B0D0"),
+        ("Runesmith", "R0G0B100D0"),
+        ("Seer", "R0G100B0D0"),
+        ("Warrior", "R100G0B0D0"),
+        ("Wolf-Warrior", "R75G25B0D0"),
+    ]
+    for character_class, item_sku in seed_preferences:
+        potion_id = connection.execute(
+            sa.text(
+                """
+                SELECT id
+                FROM potion_inventory
+                WHERE item_sku = :item_sku
+                """
+            ),
+            {"item_sku": item_sku},
+        ).scalar_one()
+        seed_ucb_for_class(connection, character_class, potion_id)
 
 
 def downgrade() -> None:
