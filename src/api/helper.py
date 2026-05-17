@@ -139,12 +139,16 @@ def get_recent_customer_classes(connection, limit: int = 6):
         sqlalchemy.text(
             """
             SELECT character_class
-            FROM customer_seen
-            WHERE visit_id = (
-                SELECT MAX(visit_id)
+            FROM (
+                SELECT character_class, MIN(id) AS first_seen_id
                 FROM customer_seen
-            )
-            ORDER BY id ASC
+                WHERE visit_id = (
+                    SELECT MAX(visit_id)
+                    FROM customer_seen
+                )
+                GROUP BY character_class
+            ) latest_classes
+            ORDER BY first_seen_id ASC
             LIMIT :limit
             """
         ),

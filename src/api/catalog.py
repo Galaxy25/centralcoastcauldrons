@@ -51,11 +51,12 @@ def _catalog_item_from_potion(potion) -> CatalogItem:
 
 def create_catalog() -> List[CatalogItem]:
     with db.engine.begin() as connection:
-        # Recent classes decide how the six catalog slots are divided
+        # Latest unique classes decide how the six catalog slots are divided.
         recent_classes = [
             row.character_class
             for row in get_recent_customer_classes(connection, 6)
         ]
+
         selected_ids = set()
         selected_potions = []
 
@@ -73,7 +74,7 @@ def create_catalog() -> List[CatalogItem]:
                     break
 
             fallback_count = slot_count - selected_for_class
-            # New classes may not have UCB rows yet, so fill their slots randomly
+            # Classes with no UCB rows still get fallback catalog picks.
             for potion in get_random_potions(connection, fallback_count, selected_ids):
                 selected_ids.add(potion.id)
                 selected_potions.append((potion, character_class))
@@ -88,12 +89,15 @@ def create_catalog() -> List[CatalogItem]:
                 selected_ids.add(potion.id)
                 selected_potions.append((potion, None))
 
-        items = []
-        for potion, character_class in selected_potions[:6]:
-            # Only class-backed picks should train that class's UCB row.
-            if character_class is not None:
+        displayed_potions = selected_potions[:6]
+        for potion, _ in displayed_potions:
+            for row in get_recent_customer_classes(connection, 15):
+                character_class = row.character_class
                 increment_shown(connection, character_class, potion.id)
                 update_ucb(connection, character_class, potion.id)
+
+        items = []
+        for potion, _ in displayed_potions:
             items.append(_catalog_item_from_potion(potion))
     return items
 
