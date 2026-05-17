@@ -2,7 +2,7 @@ import random
 from typing import Any
 import sqlalchemy
 
-POTION_PRICE = 50
+POTION_PRICE = 60
 
 
 def add_customer_seen(
