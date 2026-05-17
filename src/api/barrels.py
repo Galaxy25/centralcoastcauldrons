@@ -109,7 +109,7 @@ def create_barrel_plan(
 
         barrel_cost_per_potion = 100 * barrel.price / barrel.ml_per_barrel
         if (capacity_quantity <= 0
-            or barrel_cost_per_potion > 40
+            or barrel_cost_per_potion > 30
             or remaining_gold < barrel.price):
             continue
 
