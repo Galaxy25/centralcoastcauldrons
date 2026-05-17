@@ -1,11 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
 import sqlalchemy
 from src.api import auth
 from enum import Enum
 from typing import List, Optional
-from src.api.UCB import increment_bought, update_ucb
-from src.api.helper import *
+from src.api.UCB import _check_ucb, increment_bought, seed_ucb_for_class, update_ucb
+from src.api.helper import (
+    POTION_PRICE,
+    add_customer_seen,
+    get_cart_customer_class,
+    update_gold,
+    update_potions,
+)
 from src import database as db
 
 router = APIRouter(
@@ -81,6 +87,18 @@ def post_visits(visit_id: int, customers: List[Customer]):
     """
     Shares the customers that visited the store on that tick.
     """
+    with db.engine.begin() as connection:
+        for customer in customers:
+            add_customer_seen(
+                connection,
+                visit_id,
+                customer.customer_id,
+                customer.customer_name,
+                customer.character_class,
+                customer.character_species,
+                customer.level,
+            )
+
     return status.HTTP_204_NO_CONTENT
 
 class CartCreateResponse(BaseModel):
@@ -161,6 +179,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     """
 
     with db.engine.begin() as connection:
+        customer_class = get_cart_customer_class(connection, cart_id)
         cart_items = connection.execute(
             sqlalchemy.text(
                 """
@@ -176,8 +195,11 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         for potion in cart_items:
             total_potions_bought += potion.quantity
             total_gold_paid += potion.quantity * POTION_PRICE
-            increment_bought(connection, potion.potion_id)
-            update_ucb(connection, potion.potion_id)
+            if not _check_ucb(connection, customer_class, potion.potion_id):
+                seed_ucb_for_class(connection, customer_class, potion.potion_id)
+            else:
+                increment_bought(connection, customer_class, potion.potion_id, potion.quantity)
+                update_ucb(connection, customer_class, potion.potion_id)
             update_potions(connection, potion.potion_id, -potion.quantity, message=f"Checkout for cart: {cart_id}, potion_id: {potion.potion_id}, quantity: {potion.quantity}")
         update_gold(connection, total_gold_paid, f"Checkout for cart: {cart_id}, gold paid: {total_gold_paid}")
 

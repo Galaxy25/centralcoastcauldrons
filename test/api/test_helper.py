@@ -1,9 +1,14 @@
 from src.api.admin import reset
-from src.api.catalog import get_catalog
-from src.api.helper import *
-from src.api.UCB import get_game_day, increment_bought
+from src.api.helper import (
+    get_all_potions,
+    get_gold_total,
+    get_ml_total,
+    get_potion,
+    update_gold,
+    update_ml,
+    update_potions,
+)
 from src import database as db
-import sqlalchemy
 
 def test_gold_history() -> None:
     reset()

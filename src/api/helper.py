@@ -1,7 +1,35 @@
+import random
 from typing import Any
 import sqlalchemy
 
 POTION_PRICE = 50
+
+
+def add_customer_seen(
+    connection,
+    visit_id: int,
+    customer_id: str,
+    customer_name: str,
+    character_class: str,
+    character_species: str,
+    level: int,
+) -> None:
+    connection.execute(
+        sqlalchemy.text(
+            """
+            INSERT INTO customer_seen (visit_id, customer_id, customer_name, character_class, character_species, level)
+            VALUES (:visit_id, :customer_id, :customer_name, :character_class, :character_species, :level)
+            """
+        ),
+        {
+            "visit_id": visit_id,
+            "customer_id": customer_id,
+            "customer_name": customer_name,
+            "character_class": character_class,
+            "character_species": character_species,
+            "level": level,
+        },
+    )
 
 
 def get_gold_total(connection) -> int:
@@ -106,7 +134,35 @@ def get_all_potions(connection):
     ).all()
 
 
-def get_potions_by_ucb(connection, game_day: str):
+def get_recent_customer_classes(connection, limit: int = 6):
+    return connection.execute(
+        sqlalchemy.text(
+            """
+            SELECT character_class
+            FROM customer_seen
+            WHERE visit_id = (
+                SELECT MAX(visit_id)
+                FROM customer_seen
+            )
+            ORDER BY id ASC
+            LIMIT :limit
+            """
+        ),
+        {"limit": limit},
+    ).all()
+
+
+def get_random_potions(connection, limit: int, excluded_ids: set[int] | None = None):
+    if limit <= 0:
+        return []
+
+    excluded_ids = excluded_ids or set()
+    potions = get_all_potions(connection)
+    available_potions = [potion for potion in potions if potion.id not in excluded_ids]
+    return random.sample(available_potions, min(limit, len(available_potions)))
+
+
+def get_potions_by_ucb(connection, character_class: str):
     return connection.execute(
         sqlalchemy.text(
             """
@@ -123,13 +179,26 @@ def get_potions_by_ucb(connection, game_day: str):
             FROM potion_inventory
             JOIN ucb
                 ON potion_inventory.id = ucb.potion_id
-               AND ucb.game_day = :game_day
+               AND ucb.character_class = :character_class
             WHERE potion_inventory.quantity > 0
             ORDER BY ucb.ucb_value DESC, potion_inventory.id ASC
             """
         ),
-        {"game_day": game_day},
+        {"character_class": character_class},
     ).all()
+
+
+def get_cart_customer_class(connection, cart_id: int) -> str:
+    return connection.execute(
+        sqlalchemy.text(
+            """
+            SELECT customer_class
+            FROM cart_checkout
+            WHERE id = :cart_id
+            """
+        ),
+        {"cart_id": cart_id},
+    ).one().customer_class
 
 
 def get_capacity(connection):
