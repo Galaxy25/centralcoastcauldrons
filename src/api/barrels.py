@@ -95,7 +95,7 @@ def create_barrel_plan(
         max_barrel_capacity * 30 // 100,
         max_barrel_capacity * 0 // 100,
     ]
-    already_bought = [False, False, False, False]
+    # already_bought = [False, False, False, False]
     for barrel in sorted(wholesale_catalog, key = lambda b : b.price / b.ml_per_barrel):
         if barrel.quantity <= 0:
             continue
@@ -122,11 +122,11 @@ def create_barrel_plan(
         if quantity <= 0:
             continue
 
-        # Stop overbuying specific color for now.
-        if already_bought[color_index]:
-            continue
-        else:
-            already_bought[color_index] = True
+        # # Stop overbuying specific color for now.
+        # if already_bought[color_index]:
+        #     continue
+        # else:
+        #     already_bought[color_index] = True
 
         total_spend += barrel.price * quantity
         temp_ml_storage[color_index] += quantity * barrel.ml_per_barrel
