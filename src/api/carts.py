@@ -198,7 +198,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
             if not _check_ucb(connection, customer_class, potion.potion_id):
                 seed_ucb_for_class(connection, customer_class, potion.potion_id)
             else:
-                increment_bought(connection, customer_class, potion.potion_id, potion.quantity)
+                increment_bought(connection, customer_class, potion.potion_id, 1)
                 update_ucb(connection, customer_class, potion.potion_id)
             update_potions(connection, potion.potion_id, -potion.quantity, message=f"Checkout for cart: {cart_id}, potion_id: {potion.potion_id}, quantity: {potion.quantity}")
         update_gold(connection, total_gold_paid, f"Checkout for cart: {cart_id}, gold paid: {total_gold_paid}")
