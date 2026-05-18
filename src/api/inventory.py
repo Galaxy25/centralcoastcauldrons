@@ -57,9 +57,9 @@ def get_capacity_plan():
         if max_cu <= 0:
             return CapacityPlan(potion_capacity=0, ml_capacity=0)
         capacity = get_capacity(connection)
-    potion_capacity = min(10 - capacity.potion_capacity, math.floor(max_cu / 2))
-    ml_capacity = min(10 - capacity.barrel_capacity, math.ceil(max_cu / 2))
-    return CapacityPlan(potion_capacity=potion_capacity, ml_capacity=ml_capacity)
+    #potion_capacity = min(10 - capacity.potion_capacity, math.floor(max_cu / 2))
+    ml_capacity = min(10 - capacity.barrel_capacity, max_cu)
+    return CapacityPlan(potion_capacity=0, ml_capacity=ml_capacity)
 
 
 @router.post("/deliver/{order_id}", status_code=status.HTTP_204_NO_CONTENT)
