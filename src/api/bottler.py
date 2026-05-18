@@ -70,7 +70,7 @@ def create_bottle_plan(
     mixes = []
     remaining_slots = maximum_potion_capacity
     remaining_slots -= sum([potion.quantity for potion in current_potion_inventory])
-    per_potion_type_limit = max(7, math.ceil(maximum_potion_capacity / 36))
+    per_potion_type_limit = max(10, math.ceil(maximum_potion_capacity / 36))
     current_quantities = {
         tuple(potion.potion_type): potion.quantity for potion in current_potion_inventory
     }
