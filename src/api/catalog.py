@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from typing import List, Annotated
-from src.api.UCB import increment_shown, update_ucb
+from src.api.UCB import increment_shown
 from src.api.helper import (
     POTION_PRICE,
     get_potions_by_ucb,
@@ -52,15 +52,16 @@ def _catalog_item_from_potion(potion) -> CatalogItem:
 def create_catalog() -> List[CatalogItem]:
     with db.engine.begin() as connection:
         # Latest unique classes decide how the six catalog slots are divided.
+
         recent_classes = [
             row.character_class
-            for row in get_recent_customer_classes(connection, 6)
+            for row in get_recent_customer_classes(connection, 15)
         ]
 
         selected_ids = set()
         selected_potions = []
 
-        for character_class, slot_count in _class_slot_counts(recent_classes):
+        for character_class, slot_count in _class_slot_counts(recent_classes[:6]):
             selected_for_class = 0
             # Use the best UCB potions for each class first
             for potion in get_potions_by_ucb(connection, character_class):
@@ -91,10 +92,8 @@ def create_catalog() -> List[CatalogItem]:
 
         displayed_potions = selected_potions[:6]
         for potion, _ in displayed_potions:
-            for row in get_recent_customer_classes(connection, 15):
-                character_class = row.character_class
+            for character_class in recent_classes:
                 increment_shown(connection, character_class, potion.id)
-                update_ucb(connection, character_class, potion.id)
 
         items = []
         for potion, _ in displayed_potions:
