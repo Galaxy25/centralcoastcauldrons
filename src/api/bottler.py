@@ -41,21 +41,89 @@ def post_deliver_bottles(potions_delivered: List[PotionMixes], order_id: int):
     Delivery of potions requested after plan. order_id is a unique value representing
     a single delivery; the call is idempotent based on the order_id.
     """
-    print(f"potions delivered: {potions_delivered} order_id: {order_id}")
+    if not potions_delivered:
+        return
+
+    red_total = sum(p.potion_type[0] * p.quantity for p in potions_delivered)
+    green_total = sum(p.potion_type[1] * p.quantity for p in potions_delivered)
+    blue_total = sum(p.potion_type[2] * p.quantity for p in potions_delivered)
+    dark_total = sum(p.potion_type[3] * p.quantity for p in potions_delivered)
 
     with db.engine.begin() as connection:
-        for potion in potions_delivered:
-            update_ml(connection,
-                      -potion.potion_type[0] * potion.quantity,
-                      -potion.potion_type[1] * potion.quantity,
-                      -potion.potion_type[2] * potion.quantity,
-                      -potion.potion_type[3] * potion.quantity,
-                      message=f"Bottle delivery for order: {order_id}, potion type: {potion.potion_type}, quantity: {potion.quantity}")
-            potion_sku = f"R{potion.potion_type[0]}G{potion.potion_type[1]}B{potion.potion_type[2]}D{potion.potion_type[3]}"
-            potion_id = get_potion_id(connection, potion_sku)
-            update_potions(connection, potion_id, potion.quantity, message=f"Bottle delivery for order: {order_id}, potion type: {potion.potion_type}, quantity: {potion.quantity}")
+        transaction_id = connection.execute(
+            sqlalchemy.text(
+                "INSERT INTO transactions (description) VALUES (:message) RETURNING id"
+            ),
+            {"message": f"Bottle delivery for order: {order_id}"},
+        ).one().id
 
-    pass
+        connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO ml_history
+                    (transaction_id, red_ml_change, green_ml_change, blue_ml_change, dark_ml_change)
+                VALUES (:transaction_id, :red, :green, :blue, :dark)
+                """
+            ),
+            {
+                "transaction_id": transaction_id,
+                "red": -red_total,
+                "green": -green_total,
+                "blue": -blue_total,
+                "dark": -dark_total,
+            },
+        )
+        connection.execute(
+            sqlalchemy.text(
+                """
+                UPDATE global_inventory
+                SET red_ml = red_ml - :red,
+                    green_ml = green_ml - :green,
+                    blue_ml = blue_ml - :blue,
+                    dark_ml = dark_ml - :dark
+                """
+            ),
+            {
+                "red": red_total,
+                "green": green_total,
+                "blue": blue_total,
+                "dark": dark_total,
+            },
+        )
+
+        inventory_rows = connection.execute(
+            sqlalchemy.text(
+                "SELECT id, red_ml, green_ml, blue_ml, dark_ml FROM potion_inventory"
+            )
+        ).all()
+        key_id = {
+            (r.red_ml, r.green_ml, r.blue_ml, r.dark_ml): r.id for r in inventory_rows
+        }
+
+        potion_rows = [
+            {
+                "tid": transaction_id,
+                "pid": key_id[(p.potion_type[0], p.potion_type[1], p.potion_type[2], p.potion_type[3])],
+                "qty": p.quantity,
+            }
+            for p in potions_delivered
+        ]
+
+        connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO potion_history (transaction_id, potion_id, change)
+                VALUES (:tid, :pid, :qty)
+                """
+            ),
+            potion_rows,
+        )
+        connection.execute(
+            sqlalchemy.text(
+                "UPDATE potion_inventory SET quantity = quantity + :qty WHERE id = :pid"
+            ),
+            potion_rows,
+        )
 
 
 def create_bottle_plan(
