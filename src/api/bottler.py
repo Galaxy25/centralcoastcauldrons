@@ -50,12 +50,16 @@ def post_deliver_bottles(potions_delivered: List[PotionMixes], order_id: int):
     dark_total = sum(p.potion_type[3] * p.quantity for p in potions_delivered)
 
     with db.engine.begin() as connection:
-        transaction_id = connection.execute(
-            sqlalchemy.text(
-                "INSERT INTO transactions (description) VALUES (:message) RETURNING id"
-            ),
-            {"message": f"Bottle delivery for order: {order_id}"},
-        ).one().id
+        transaction_id = (
+            connection.execute(
+                sqlalchemy.text(
+                    "INSERT INTO transactions (description) VALUES (:message) RETURNING id"
+                ),
+                {"message": f"Bottle delivery for order: {order_id}"},
+            )
+            .one()
+            .id
+        )
 
         connection.execute(
             sqlalchemy.text(
@@ -103,7 +107,14 @@ def post_deliver_bottles(potions_delivered: List[PotionMixes], order_id: int):
         potion_rows = [
             {
                 "tid": transaction_id,
-                "pid": key_id[(p.potion_type[0], p.potion_type[1], p.potion_type[2], p.potion_type[3])],
+                "pid": key_id[
+                    (
+                        p.potion_type[0],
+                        p.potion_type[1],
+                        p.potion_type[2],
+                        p.potion_type[3],
+                    )
+                ],
                 "qty": p.quantity,
             }
             for p in potions_delivered
@@ -140,7 +151,8 @@ def create_bottle_plan(
     remaining_slots -= sum([potion.quantity for potion in current_potion_inventory])
     per_potion_type_limit = max(10, math.ceil(maximum_potion_capacity / 36))
     current_quantities = {
-        tuple(potion.potion_type): potion.quantity for potion in current_potion_inventory
+        tuple(potion.potion_type): potion.quantity
+        for potion in current_potion_inventory
     }
     rows = connection.execute(
         sqlalchemy.text(
@@ -176,9 +188,7 @@ def create_bottle_plan(
         blue_ml -= most_possible * p.blue_ml
         dark_ml -= most_possible * p.dark_ml
         remaining_slots -= most_possible
-        mixes.append(PotionMixes(
-            potion_type=potion_type,
-            quantity=most_possible))
+        mixes.append(PotionMixes(potion_type=potion_type, quantity=most_possible))
     return mixes
 
 
@@ -197,7 +207,12 @@ def get_bottle_plan():
 
         mixes = []
         for p in potions:
-            mixes.append(PotionMixes(potion_type=[p.red_ml, p.green_ml, p.blue_ml, p.dark_ml], quantity=p.quantity))
+            mixes.append(
+                PotionMixes(
+                    potion_type=[p.red_ml, p.green_ml, p.blue_ml, p.dark_ml],
+                    quantity=p.quantity,
+                )
+            )
 
         return create_bottle_plan(
             connection,
@@ -205,6 +220,6 @@ def get_bottle_plan():
             green_ml=ml.green_ml,
             blue_ml=ml.blue_ml,
             dark_ml=ml.dark_ml,
-            maximum_potion_capacity=capacity.potion_capacity*50,
-            current_potion_inventory=mixes
+            maximum_potion_capacity=capacity.potion_capacity * 50,
+            current_potion_inventory=mixes,
         )

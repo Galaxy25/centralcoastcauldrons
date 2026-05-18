@@ -33,39 +33,64 @@ def add_customer_seen(
 
 
 def get_gold_total(connection) -> int:
-    return connection.execute(
-        sqlalchemy.text("SELECT gold AS total_gold FROM global_inventory")
-    ).one().total_gold
+    return (
+        connection.execute(
+            sqlalchemy.text("SELECT gold AS total_gold FROM global_inventory")
+        )
+        .one()
+        .total_gold
+    )
 
 
 def update_gold(connection, value: int, message: str = "gold change") -> None:
-    transaction_id = connection.execute(
-        sqlalchemy.text("INSERT INTO transactions (description) VALUES (:message) RETURNING id"),
-        {"message": message}
-    ).one().id
+    transaction_id = (
+        connection.execute(
+            sqlalchemy.text(
+                "INSERT INTO transactions (description) VALUES (:message) RETURNING id"
+            ),
+            {"message": message},
+        )
+        .one()
+        .id
+    )
     connection.execute(
-        sqlalchemy.text("INSERT INTO gold_history (transaction_id, \"change\") VALUES (:transaction_id, :value)"),
-        {"transaction_id": transaction_id, "value": value}
+        sqlalchemy.text(
+            'INSERT INTO gold_history (transaction_id, "change") VALUES (:transaction_id, :value)'
+        ),
+        {"transaction_id": transaction_id, "value": value},
     )
     connection.execute(
         sqlalchemy.text("UPDATE global_inventory SET gold = gold + :value"),
-        {"value": value}
+        {"value": value},
     )
 
 
 def get_ml_total(connection) -> Any:
     return connection.execute(
-        sqlalchemy.text("SELECT red_ml, green_ml, blue_ml, dark_ml FROM global_inventory")
+        sqlalchemy.text(
+            "SELECT red_ml, green_ml, blue_ml, dark_ml FROM global_inventory"
+        )
     ).one()
 
 
-def update_ml(connection, red_ml: int = 0, green_ml: int = 0,
-              blue_ml: int = 0, dark_ml: int = 0,
-              message: str = "ml change") -> None:
-    transaction_id = connection.execute(
-        sqlalchemy.text("INSERT INTO transactions (description) VALUES (:message) RETURNING id"),
-        {"message": message}
-    ).one().id
+def update_ml(
+    connection,
+    red_ml: int = 0,
+    green_ml: int = 0,
+    blue_ml: int = 0,
+    dark_ml: int = 0,
+    message: str = "ml change",
+) -> None:
+    transaction_id = (
+        connection.execute(
+            sqlalchemy.text(
+                "INSERT INTO transactions (description) VALUES (:message) RETURNING id"
+            ),
+            {"message": message},
+        )
+        .one()
+        .id
+    )
     connection.execute(
         sqlalchemy.text(
             """
@@ -73,8 +98,13 @@ def update_ml(connection, red_ml: int = 0, green_ml: int = 0,
             VALUES (:transaction_id, :red_change, :green_change, :blue_change, :dark_change)
             """
         ),
-        {"transaction_id": transaction_id, "red_change": red_ml, "green_change": green_ml,
-         "blue_change": blue_ml, "dark_change": dark_ml}
+        {
+            "transaction_id": transaction_id,
+            "red_change": red_ml,
+            "green_change": green_ml,
+            "blue_change": blue_ml,
+            "dark_change": dark_ml,
+        },
     )
     connection.execute(
         sqlalchemy.text(
@@ -86,38 +116,61 @@ def update_ml(connection, red_ml: int = 0, green_ml: int = 0,
                 dark_ml = dark_ml + :dark_change
             """
         ),
-        {"red_change": red_ml, "green_change": green_ml, "blue_change": blue_ml, "dark_change": dark_ml}
+        {
+            "red_change": red_ml,
+            "green_change": green_ml,
+            "blue_change": blue_ml,
+            "dark_change": dark_ml,
+        },
     )
 
 
 def get_potion(connection, id: int) -> int:
-    return connection.execute(
-        sqlalchemy.text("SELECT quantity AS potion_count FROM potion_inventory WHERE id = :id"),
-        {"id": id}
-    ).one().potion_count
+    return (
+        connection.execute(
+            sqlalchemy.text(
+                "SELECT quantity AS potion_count FROM potion_inventory WHERE id = :id"
+            ),
+            {"id": id},
+        )
+        .one()
+        .potion_count
+    )
 
 
 def get_potion_id(connection, sku: str):
-    return connection.execute(
-        sqlalchemy.text("SELECT id FROM potion_inventory WHERE item_sku = :sku"),
-        {"sku": sku}
-    ).one().id
+    return (
+        connection.execute(
+            sqlalchemy.text("SELECT id FROM potion_inventory WHERE item_sku = :sku"),
+            {"sku": sku},
+        )
+        .one()
+        .id
+    )
 
 
 def update_potions(connection, id: int, count: int, message: str = "potion change"):
-    transaction_id = connection.execute(
-        sqlalchemy.text("INSERT INTO transactions (description) VALUES (:message) RETURNING id"),
-        {"message": message}
-    ).one().id
+    transaction_id = (
+        connection.execute(
+            sqlalchemy.text(
+                "INSERT INTO transactions (description) VALUES (:message) RETURNING id"
+            ),
+            {"message": message},
+        )
+        .one()
+        .id
+    )
     connection.execute(
         sqlalchemy.text(
             "INSERT INTO potion_history (transaction_id, potion_id, change) VALUES (:transaction_id, :id, :count)"
         ),
-        {"transaction_id": transaction_id, "id": id, "count": count}
+        {"transaction_id": transaction_id, "id": id, "count": count},
     )
     connection.execute(
-        sqlalchemy.text("UPDATE potion_inventory SET quantity = quantity + :count WHERE id = :id"),
-        {"id": id, "count": count}
+        sqlalchemy.text(
+            "UPDATE potion_inventory SET quantity = quantity + :count WHERE id = :id"
+        ),
+        {"id": id, "count": count},
     )
 
 
@@ -193,16 +246,20 @@ def get_potions_by_ucb(connection, character_class: str):
 
 
 def get_cart_customer_class(connection, cart_id: int) -> str:
-    return connection.execute(
-        sqlalchemy.text(
-            """
+    return (
+        connection.execute(
+            sqlalchemy.text(
+                """
             SELECT customer_class
             FROM cart_checkout
             WHERE id = :cart_id
             """
-        ),
-        {"cart_id": cart_id},
-    ).one().customer_class
+            ),
+            {"cart_id": cart_id},
+        )
+        .one()
+        .customer_class
+    )
 
 
 def get_capacity(connection):

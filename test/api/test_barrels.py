@@ -3,6 +3,7 @@ from src.api.barrels import *
 from src.api.helper import *
 from src import database as db
 
+
 def test_calculate_barrel_summary_returns_total_gold_paid() -> None:
     reset()
     with db.engine.begin() as connection:

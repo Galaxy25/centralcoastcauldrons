@@ -61,14 +61,22 @@ def post_deliver_barrels(barrels_delivered: List[Barrel], order_id: int):
 
     delivery = calculate_barrel_summary(barrels_delivered)
     with db.engine.begin() as connection:
-        update_gold(connection, -delivery.gold_paid, f"Barrel delivery for order: {order_id}, gold paid: {delivery.gold_paid}  s")
+        update_gold(
+            connection,
+            -delivery.gold_paid,
+            f"Barrel delivery for order: {order_id}, gold paid: {delivery.gold_paid}  s",
+        )
 
         for barrel in barrels_delivered:
             ml = barrel.ml_per_barrel * barrel.quantity
             highest_type = max(barrel.potion_type)
             select = barrel.potion_type.index(highest_type)
             mlType = ml_options[select]
-            update_ml(connection, **{mlType: ml}, message=f"Barrel delivery for order: {order_id}, {mlType} {ml}")
+            update_ml(
+                connection,
+                **{mlType: ml},
+                message=f"Barrel delivery for order: {order_id}, {mlType} {ml}",
+            )
 
     pass
 
@@ -87,7 +95,12 @@ def create_barrel_plan(
     )
 
     total_spend = 0
-    temp_ml_storage = [current_red_ml, current_green_ml, current_blue_ml, current_dark_ml]
+    temp_ml_storage = [
+        current_red_ml,
+        current_green_ml,
+        current_blue_ml,
+        current_dark_ml,
+    ]
     bought_barrels = []
     color_capacity_limits = [
         max_barrel_capacity * 35 // 100,
@@ -96,7 +109,7 @@ def create_barrel_plan(
         max_barrel_capacity * 0 // 100,
     ]
     # already_bought = [False, False, False, False]
-    for barrel in sorted(wholesale_catalog, key = lambda b : b.price / b.ml_per_barrel):
+    for barrel in sorted(wholesale_catalog, key=lambda b: b.price / b.ml_per_barrel):
         if barrel.quantity <= 0:
             continue
 
@@ -108,9 +121,11 @@ def create_barrel_plan(
         capacity_quantity = remaining_color_capacity // barrel.ml_per_barrel
 
         barrel_cost_per_potion = 100 * barrel.price / barrel.ml_per_barrel
-        if (capacity_quantity <= 0
+        if (
+            capacity_quantity <= 0
             or barrel_cost_per_potion > 16
-            or remaining_gold < barrel.price):
+            or remaining_gold < barrel.price
+        ):
             continue
 
         if barrel.price == 0:
@@ -150,11 +165,10 @@ def get_wholesale_purchase_plan(wholesale_catalog: List[Barrel]):
 
     return create_barrel_plan(
         gold=gold_total,
-        max_barrel_capacity=capacity.barrel_capacity*10000,
+        max_barrel_capacity=capacity.barrel_capacity * 10000,
         current_red_ml=ml_total.red_ml,
         current_green_ml=ml_total.green_ml,
         current_blue_ml=ml_total.blue_ml,
         current_dark_ml=ml_total.dark_ml,
-        wholesale_catalog=wholesale_catalog
+        wholesale_catalog=wholesale_catalog,
     )
- 

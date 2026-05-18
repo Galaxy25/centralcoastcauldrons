@@ -5,6 +5,7 @@ Revises: f8a1b9e097b6
 Create Date: 2026-05-16 15:58:19.411481
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -50,7 +51,12 @@ def upgrade() -> None:
         sa.Column("character_class", sa.Text(), nullable=False),
         sa.Column("character_species", sa.Text(), nullable=False),
         sa.Column("level", sa.Integer(), nullable=False),
-        sa.Column("created_at", sa.TIMESTAMP(), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.execute(
         sa.text(

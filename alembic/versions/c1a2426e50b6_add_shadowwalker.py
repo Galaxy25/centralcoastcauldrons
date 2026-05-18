@@ -5,6 +5,7 @@ Revises: 04f3db6f07ea
 Create Date: 2026-05-17 13:09:55.144844
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -14,10 +15,11 @@ from src.api.UCB import seed_ucb_for_class
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'c1a2426e50b6'
-down_revision: Union[str, None] = '04f3db6f07ea'
+revision: str = "c1a2426e50b6"
+down_revision: Union[str, None] = "04f3db6f07ea"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
+
 
 def upgrade() -> None:
     """Upgrade schema."""

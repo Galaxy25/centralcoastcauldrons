@@ -5,6 +5,7 @@ Revises: eac56a34e5a6
 Create Date: 2026-05-01 18:07:38.803294
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -12,8 +13,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'f9016e310b3d'
-down_revision: Union[str, None] = 'eac56a34e5a6'
+revision: str = "f9016e310b3d"
+down_revision: Union[str, None] = "eac56a34e5a6"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -23,9 +24,9 @@ def upgrade() -> None:
     op.execute("CREATE SCHEMA public")
 
     op.create_table(
-    "alembic_version",
-    sa.Column("version_num", sa.String(32), nullable=False, primary_key=True),
-)
+        "alembic_version",
+        sa.Column("version_num", sa.String(32), nullable=False, primary_key=True),
+    )
     op.get_bind().execute(
         sa.text("INSERT INTO alembic_version (version_num) VALUES (:revision)"),
         {"revision": down_revision},
@@ -34,8 +35,12 @@ def upgrade() -> None:
     op.create_table(
         "transactions",
         sa.Column("id", sa.Integer(), primary_key=True, nullable=False),
-        sa.Column("time", sa.TIMESTAMP(), nullable=True, server_default=sa.text("now()")),
-        sa.Column("description", sa.Text(), nullable=True, server_default=sa.text("''::text")),
+        sa.Column(
+            "time", sa.TIMESTAMP(), nullable=True, server_default=sa.text("now()")
+        ),
+        sa.Column(
+            "description", sa.Text(), nullable=True, server_default=sa.text("''::text")
+        ),
     )
 
     op.create_table(
@@ -78,10 +83,18 @@ def upgrade() -> None:
         "ml_history",
         sa.Column("id", sa.Integer(), primary_key=True, nullable=False),
         sa.Column("transaction_id", sa.Integer(), nullable=False),
-        sa.Column("red_ml_change", sa.Integer(), nullable=False, server_default=sa.text("0")),
-        sa.Column("green_ml_change", sa.Integer(), nullable=False, server_default=sa.text("0")),
-        sa.Column("blue_ml_change", sa.Integer(), nullable=False, server_default=sa.text("0")),
-        sa.Column("dark_ml_change", sa.Integer(), nullable=False, server_default=sa.text("0")),
+        sa.Column(
+            "red_ml_change", sa.Integer(), nullable=False, server_default=sa.text("0")
+        ),
+        sa.Column(
+            "green_ml_change", sa.Integer(), nullable=False, server_default=sa.text("0")
+        ),
+        sa.Column(
+            "blue_ml_change", sa.Integer(), nullable=False, server_default=sa.text("0")
+        ),
+        sa.Column(
+            "dark_ml_change", sa.Integer(), nullable=False, server_default=sa.text("0")
+        ),
         sa.ForeignKeyConstraint(
             ["transaction_id"],
             ["transactions.id"],
@@ -124,7 +137,9 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), primary_key=True, nullable=False),
         sa.Column("cart_id", sa.Integer(), nullable=False),
         sa.Column("potion_id", sa.Integer(), nullable=False),
-        sa.Column("quantity", sa.Integer(), nullable=False, server_default=sa.text("1")),
+        sa.Column(
+            "quantity", sa.Integer(), nullable=False, server_default=sa.text("1")
+        ),
         sa.ForeignKeyConstraint(
             ["cart_id"],
             ["cart_checkout.id"],
@@ -159,11 +174,10 @@ def downgrade() -> None:
     op.execute("CREATE SCHEMA public")
 
     op.create_table(
-    "alembic_version",
-    sa.Column("version_num", sa.String(32), nullable=False, primary_key=True),
-)
+        "alembic_version",
+        sa.Column("version_num", sa.String(32), nullable=False, primary_key=True),
+    )
     op.get_bind().execute(
         sa.text("INSERT INTO alembic_version (version_num) VALUES (:revision)"),
         {"revision": revision},
     )
-

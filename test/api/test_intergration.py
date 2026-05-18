@@ -12,23 +12,49 @@ def test_simulation():
     with db.engine.begin() as connection:
         update_gold(connection, 2000)
     barrel_catalog: List[Barrel] = [
-        Barrel(sku="RED", ml_per_barrel=500, potion_type=[1, 0, 0, 0], price=100, quantity=99),
-        Barrel(sku="GREEN", ml_per_barrel=500, potion_type=[0, 1, 0, 0], price=100, quantity=99),
-        Barrel(sku="BLUE", ml_per_barrel=500, potion_type=[0, 0, 1, 0], price=100, quantity=99),
-        Barrel(sku="DARK", ml_per_barrel=500, potion_type=[0, 0, 0, 1], price=100, quantity=99),
+        Barrel(
+            sku="RED",
+            ml_per_barrel=500,
+            potion_type=[1, 0, 0, 0],
+            price=100,
+            quantity=99,
+        ),
+        Barrel(
+            sku="GREEN",
+            ml_per_barrel=500,
+            potion_type=[0, 1, 0, 0],
+            price=100,
+            quantity=99,
+        ),
+        Barrel(
+            sku="BLUE",
+            ml_per_barrel=500,
+            potion_type=[0, 0, 1, 0],
+            price=100,
+            quantity=99,
+        ),
+        Barrel(
+            sku="DARK",
+            ml_per_barrel=500,
+            potion_type=[0, 0, 0, 1],
+            price=100,
+            quantity=99,
+        ),
     ]
     purchase_plan = get_wholesale_purchase_plan(barrel_catalog)
     barrels = []
     for order in purchase_plan:
         for barrel in barrel_catalog:
             if barrel.sku == order.sku:
-                barrels.append(Barrel(
-                    sku=barrel.sku,
-                    ml_per_barrel=barrel.ml_per_barrel,
-                    potion_type=barrel.potion_type,
-                    price=barrel.price,
-                    quantity=order.quantity
-                ))
+                barrels.append(
+                    Barrel(
+                        sku=barrel.sku,
+                        ml_per_barrel=barrel.ml_per_barrel,
+                        potion_type=barrel.potion_type,
+                        price=barrel.price,
+                        quantity=order.quantity,
+                    )
+                )
 
     post_deliver_barrels(barrels, 0)
 

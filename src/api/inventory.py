@@ -38,9 +38,9 @@ def get_inventory():
         total_gold = get_gold_total(connection)
         total_ml = sum(get_ml_total(connection))
         total_potions = sum([i.quantity for i in get_all_potions(connection)])
-    return InventoryAudit(number_of_potions=total_potions,
-                          ml_in_barrels=total_ml,
-                          gold=total_gold)
+    return InventoryAudit(
+        number_of_potions=total_potions, ml_in_barrels=total_ml, gold=total_gold
+    )
 
 
 @router.post("/plan", response_model=CapacityPlan)
@@ -57,7 +57,7 @@ def get_capacity_plan():
         if max_cu <= 0:
             return CapacityPlan(potion_capacity=0, ml_capacity=0)
         capacity = get_capacity(connection)
-    #potion_capacity = min(10 - capacity.potion_capacity, math.floor(max_cu / 2))
+    # potion_capacity = min(10 - capacity.potion_capacity, math.floor(max_cu / 2))
     ml_capacity = min(10 - capacity.barrel_capacity, max_cu)
     return CapacityPlan(potion_capacity=0, ml_capacity=ml_capacity)
 
@@ -72,14 +72,27 @@ def deliver_capacity_plan(capacity_purchase: CapacityPlan, order_id: int):
     - Each additional capacity unit costs 1000 gold.
     """
     print(f"capacity delivered: {capacity_purchase} order_id: {order_id}")
-    total_cost = (capacity_purchase.potion_capacity + capacity_purchase.ml_capacity) * 1000
+    total_cost = (
+        capacity_purchase.potion_capacity + capacity_purchase.ml_capacity
+    ) * 1000
     with db.engine.begin() as connection:
-        update_gold(connection, -total_cost, f"Capacity purchase for order: {order_id}, potion_capacity: {capacity_purchase.potion_capacity}, ml_capacity: {capacity_purchase.ml_capacity}")
+        update_gold(
+            connection,
+            -total_cost,
+            f"Capacity purchase for order: {order_id}, potion_capacity: {capacity_purchase.potion_capacity}, ml_capacity: {capacity_purchase.ml_capacity}",
+        )
         connection.execute(
             sqlalchemy.text(
                 """
                 UPDATE capacity_config
                 SET potion_capacity = potion_capacity + :potion_capacity,
                     barrel_capacity = barrel_capacity + :ml_capacity
-                """),
-                [{"potion_capacity": capacity_purchase.potion_capacity, "ml_capacity": capacity_purchase.ml_capacity}])
+                """
+            ),
+            [
+                {
+                    "potion_capacity": capacity_purchase.potion_capacity,
+                    "ml_capacity": capacity_purchase.ml_capacity,
+                }
+            ],
+        )

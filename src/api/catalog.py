@@ -54,8 +54,7 @@ def create_catalog() -> List[CatalogItem]:
         # Latest unique classes decide how the six catalog slots are divided.
 
         recent_classes = [
-            row.character_class
-            for row in get_recent_customer_classes(connection, 15)
+            row.character_class for row in get_recent_customer_classes(connection, 15)
         ]
 
         selected_ids = set()
@@ -92,9 +91,8 @@ def create_catalog() -> List[CatalogItem]:
 
         displayed_potions = selected_potions[:6]
         increment_shown_for_classes(
-            connection,
-            recent_classes,
-            [potion.id for potion, _ in displayed_potions])
+            connection, recent_classes, [potion.id for potion, _ in displayed_potions]
+        )
 
         items = []
         for potion, _ in displayed_potions:

@@ -10,6 +10,7 @@ from src.api.helper import (
 )
 from src import database as db
 
+
 def test_gold_history() -> None:
     reset()
     with db.engine.begin() as connection:
@@ -19,6 +20,7 @@ def test_gold_history() -> None:
         assert get_gold_total(connection) == 750
         update_gold(connection, -750, "test gold change")
         assert get_gold_total(connection) == 0
+
 
 def test_ml_history() -> None:
     reset()
@@ -36,13 +38,14 @@ def test_ml_history() -> None:
         assert ml_total.green_ml == 200
         assert ml_total.blue_ml == 250
         assert ml_total.dark_ml == 300
-        
+
         update_ml(connection, red_ml=-100, green_ml=-100, blue_ml=-100, dark_ml=-100)
         ml_total = get_ml_total(connection)
         assert ml_total.red_ml == 0
         assert ml_total.green_ml == 100
         assert ml_total.blue_ml == 150
         assert ml_total.dark_ml == 200
+
 
 def test_potion_history() -> None:
     reset()

@@ -28,6 +28,7 @@ def test_bottle_red_potions() -> None:
     assert result[0].potion_type == [100, 0, 0, 0]
     assert result[0].quantity == 1
 
+
 def test_bottler_database() -> None:
     reset()
     with db.engine.begin() as connection:
