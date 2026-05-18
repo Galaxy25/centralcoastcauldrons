@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from typing import List, Annotated
-from src.api.UCB import increment_shown
+from src.api.UCB import increment_shown_for_classes
 from src.api.helper import (
     POTION_PRICE,
     get_potions_by_ucb,
@@ -55,7 +55,7 @@ def create_catalog() -> List[CatalogItem]:
 
         recent_classes = [
             row.character_class
-            for row in get_recent_customer_classes(connection, 12)
+            for row in get_recent_customer_classes(connection, 15)
         ]
 
         selected_ids = set()
@@ -91,9 +91,10 @@ def create_catalog() -> List[CatalogItem]:
                 selected_potions.append((potion, None))
 
         displayed_potions = selected_potions[:6]
-        for potion, _ in displayed_potions:
-            for character_class in recent_classes:
-                increment_shown(connection, character_class, potion.id)
+        increment_shown_for_classes(
+            connection,
+            recent_classes,
+            [potion.id for potion, _ in displayed_potions])
 
         items = []
         for potion, _ in displayed_potions:

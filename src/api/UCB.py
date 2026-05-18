@@ -1,6 +1,7 @@
 import math
 
 import sqlalchemy
+from sqlalchemy.dialects.postgresql import ARRAY
 
 
 def _calculate_ucb_value(bought: int, shown: int) -> float:
@@ -136,6 +137,55 @@ def increment_shown(connection, character_class: str, potion_id: int, amount: in
             "character_class": character_class,
             "potion_id": potion_id,
             "amount": amount,
+        },
+    )
+
+
+def increment_shown_for_classes(
+    connection,
+    character_classes: list[str],
+    potion_ids: list[int],
+) -> None:
+    if not character_classes or not potion_ids:
+        return
+
+    connection.execute(
+        sqlalchemy.text(
+            """
+            WITH shown_pairs AS (
+                SELECT classes.character_class, potions.potion_id
+                FROM unnest(:character_classes) AS classes(character_class)
+                CROSS JOIN unnest(:potion_ids) AS potions(potion_id)
+            )
+            UPDATE ucb
+            SET
+                shown = ucb.shown + 1,
+                ucb_value =
+                    (
+                        ucb.bought::double precision
+                        / (ucb.shown + 1)
+                    )
+                    + SQRT(
+                        (2.0 * LN(GREATEST(ucb.shown + 1, 1) + 1)) 
+                        / (ucb.shown + 1)
+                    )
+            FROM shown_pairs
+            WHERE ucb.character_class = shown_pairs.character_class
+                AND ucb.potion_id = shown_pairs.potion_id
+            """
+        ).bindparams(
+            sqlalchemy.bindparam(
+                "character_classes",
+                type_=ARRAY(sqlalchemy.Text()),
+            ),
+            sqlalchemy.bindparam(
+                "potion_ids",
+                type_=ARRAY(sqlalchemy.Integer()),
+            ),
+        ),
+        {
+            "character_classes": character_classes,
+            "potion_ids": potion_ids,
         },
     )
 
