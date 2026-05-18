@@ -55,7 +55,7 @@ def create_catalog() -> List[CatalogItem]:
 
         recent_classes = [
             row.character_class
-            for row in get_recent_customer_classes(connection, 15)
+            for row in get_recent_customer_classes(connection, 12)
         ]
 
         selected_ids = set()
