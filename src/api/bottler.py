@@ -50,6 +50,21 @@ def post_deliver_bottles(potions_delivered: List[PotionMixes], order_id: int):
     dark_total = sum(p.potion_type[3] * p.quantity for p in potions_delivered)
 
     with db.engine.begin() as connection:
+        if (
+            len(
+                connection.execute(
+                    sqlalchemy.text(
+                        """
+                    SELECT description FROM transactions
+                    WHERE description = :message
+                    """
+                    ),
+                    {"message": f"Bottle delivery for order: {order_id}"},
+                ).all()
+            )
+            != 0
+        ):
+            return
         transaction_id = (
             connection.execute(
                 sqlalchemy.text(
