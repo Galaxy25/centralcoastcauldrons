@@ -103,10 +103,10 @@ def create_barrel_plan(
     ]
     bought_barrels = []
     color_capacity_limits = [
-        max_barrel_capacity * 35 // 100,
-        max_barrel_capacity * 35 // 100,
-        max_barrel_capacity * 30 // 100,
-        max_barrel_capacity * 0 // 100,
+        max_barrel_capacity * 20 // 100,
+        max_barrel_capacity * 20 // 100,
+        max_barrel_capacity * 20 // 100,
+        max_barrel_capacity * 40 // 100,
     ]
     # already_bought = [False, False, False, False]
     for barrel in sorted(wholesale_catalog, key=lambda b: b.price / b.ml_per_barrel):
@@ -123,7 +123,7 @@ def create_barrel_plan(
         barrel_cost_per_potion = 100 * barrel.price / barrel.ml_per_barrel
         if (
             capacity_quantity <= 0
-            or barrel_cost_per_potion > 21
+            or barrel_cost_per_potion > 16
             or remaining_gold < barrel.price
         ):
             continue

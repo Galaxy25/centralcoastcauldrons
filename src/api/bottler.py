@@ -183,6 +183,8 @@ def create_bottle_plan(
     ).all()
     for p in rows:
         # Calculated the most possible potion of specific type that can be made.
+        if p.dark_ml > 0 and p.dark_ml < 100:
+            pass
         most_possible = maximum_potion_capacity
         if p.red_ml != 0:
             most_possible = min(most_possible, red_ml // p.red_ml)
