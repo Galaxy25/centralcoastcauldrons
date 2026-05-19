@@ -108,7 +108,7 @@ def create_barrel_plan(
         max_barrel_capacity * 20 // 100,
         max_barrel_capacity * 40 // 100,
     ]
-    # already_bought = [False, False, False, False]
+    already_bought = [False, False, False, False]
     for barrel in sorted(wholesale_catalog, key=lambda b: b.price / b.ml_per_barrel):
         if barrel.quantity <= 0:
             continue
@@ -123,7 +123,7 @@ def create_barrel_plan(
         barrel_cost_per_potion = 100 * barrel.price / barrel.ml_per_barrel
         if (
             capacity_quantity <= 0
-            or barrel_cost_per_potion > 11
+            or barrel_cost_per_potion > 16
             or remaining_gold < barrel.price
         ):
             continue
@@ -138,10 +138,10 @@ def create_barrel_plan(
             continue
 
         # # Stop overbuying specific color for now.
-        # if already_bought[color_index]:
-        #     continue
-        # else:
-        #     already_bought[color_index] = True
+        if already_bought[color_index]:
+            continue
+        else:
+            already_bought[color_index] = True
 
         total_spend += barrel.price * quantity
         temp_ml_storage[color_index] += quantity * barrel.ml_per_barrel
